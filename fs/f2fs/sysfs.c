@@ -26,7 +26,7 @@
 #define ST_LOG(fmt, ...)
 #endif
 
-#define SEC_BIGDATA_VERSION	(2)
+#define SEC_BIGDATA_VERSION	(3)
 
 static struct proc_dir_entry *f2fs_proc_root;
 
@@ -438,12 +438,13 @@ static ssize_t f2fs_sbi_show(struct f2fs_attr *a,
 		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
 		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
 		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%u\","
-		"\"%s\":\"%u\",\"%s\":\"%u\"\n",
+		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
+		"\"%s\":\"%u\",\"%s\":\"%u\",\"%s\":\"%u\"\n",
 			"CP",		sbi->sec_stat.cp_cnt[STAT_CP_ALL],
 			"CPBG",		sbi->sec_stat.cp_cnt[STAT_CP_BG],
 			"CPSYNC",	sbi->sec_stat.cp_cnt[STAT_CP_FSYNC],
 			"CPNONRE",	sbi->sec_stat.cpr_cnt[CP_NON_REGULAR],
+			"CPCOMPR",	sbi->sec_stat.cpr_cnt[CP_COMPRESSED],
 			"CPSBNEED",	sbi->sec_stat.cpr_cnt[CP_SB_NEED_CP],
 			"CPWPINO",	sbi->sec_stat.cpr_cnt[CP_WRONG_PINO],
 			"CP_MAX_INT",	sbi->sec_stat.cp_max_interval,
@@ -724,7 +725,7 @@ out:
 	}
 #ifdef CONFIG_F2FS_ML_BASED_STREAM_SEPARATION
 	if (!strcmp(a->attr.name, "streamid_attr")) {
-		char *streamid_buf;
+		char *streamid_buf, *streamid_buf_orig;
 		char *ptr;
 		long long streamid_attr[STREAMID_PARAMS];
 		long long lt;
@@ -734,17 +735,18 @@ out:
 		if (!streamid_buf)
 			return -ENOMEM;
 
+		streamid_buf_orig = streamid_buf;
 		while ((ptr = strsep(&streamid_buf, " ")) != NULL) {
 
 			ret = kstrtoll(skip_spaces(ptr), 10, &lt);
 			if (ret < 0 || i >= STREAMID_PARAMS) {
-				kvfree(streamid_buf);
+				kvfree(streamid_buf_orig);
 				return -EINVAL;
 			}
 			streamid_attr[i++] = lt;
 		}
 
-		kvfree(streamid_buf);
+		kvfree(streamid_buf_orig);
 
 		if (i != STREAMID_PARAMS)
 			return -EINVAL;
@@ -886,9 +888,9 @@ out:
 	if (!strcmp(a->attr.name, "iostat_period_ms")) {
 		if (t < MIN_IOSTAT_PERIOD_MS || t > MAX_IOSTAT_PERIOD_MS)
 			return -EINVAL;
-		spin_lock(&sbi->iostat_lock);
+		spin_lock_irq(&sbi->iostat_lock);
 		sbi->iostat_period_ms = (unsigned int)t;
-		spin_unlock(&sbi->iostat_lock);
+		spin_unlock_irq(&sbi->iostat_lock);
 		return count;
 	}
 

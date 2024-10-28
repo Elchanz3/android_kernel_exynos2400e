@@ -4090,6 +4090,7 @@ static void *rainbow_r0_display_on_cmdtbl[] = {
 	&KEYINFO(rainbow_r0_level1_key_enable),
 	&PKTINFO(rainbow_r0_display_on),
 	&KEYINFO(rainbow_r0_level1_key_disable),
+	&DLYINFO(rainbow_r0_wait_1_frame),
 };
 
 static void *rainbow_r0_display_off_cmdtbl[] = {

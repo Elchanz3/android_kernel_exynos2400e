@@ -232,6 +232,8 @@
 					battery,tx_stop_capacity = <0x1e>;
 					battery,tx_minduty_default = <0x14>;
 					battery,tx_minduty_5V = <0x32>;
+					battery,tx_ping_duty_default = <0x28>;
+					battery,tx_ping_duty_no_ta = <0x28>;
 					battery,tx_uno_iout = <0x5dc>;
 					battery,tx_mfc_iout_gear = <0x5dc>;
 					battery,tx_mfc_iout_phone = <0x44c>;
@@ -242,6 +244,7 @@
 					battery,nv_wc_headroom = <0x06>;
 					battery,wpc_vout_ctrl_lcd_on;
 					battery,wpc_flicker_wa_input_limit_current = <0x1f4>;
+					battery,wpc_warm_fod;
 					battery,ttf_hv_charge_current = <0xa4c>;
 					battery,ttf_hv_wireless_charge_current = <0x593>;
 					battery,ttf_wireless_charge_current = <0x360>;
@@ -3233,7 +3236,6 @@
 						samsung,pins = "gpio_s10";
 						samsung,pin-function = <0x01>;
 						samsung,pin-pud = <0x00>;
-						samsung,pin-drv = <0x00>;
 						samsung,pin-con-pdn = <0x03>;
 						samsung,pin-pud-pdn = <0x00>;
 						phandle = <0x5d>;
@@ -3964,11 +3966,10 @@
 
 		__overlay__ {
 
-			nfc_i2c_bus {
+			nfc_i2c_pull_none {
 				samsung,pins = "gpm4-0\0gpm4-1";
 				samsung,pin-function = <0x02>;
 				samsung,pin-pud = <0x00>;
-				samsung,pin-drv = <0x00>;
 				samsung,pin-con-pdn = <0x03>;
 				samsung,pin-pud-pdn = <0x00>;
 				phandle = <0x5c>;
@@ -4027,7 +4028,6 @@
 			ese_spi_bus_suspend {
 				samsung,pins = "gpp1-0\0gpp1-1";
 				samsung,pin-function = <0x01>;
-				samsung,pin-drv = <0x00>;
 				samsung,pin-pud = <0x03>;
 				samsung,pin-val = <0x01>;
 				samsung,pin-con-pdn = <0x03>;
@@ -4039,7 +4039,6 @@
 				samsung,pins = "gpp1-0\0gpp1-1\0gpp1-2";
 				samsung,pin-function = <0x02>;
 				samsung,pin-pud = <0x00>;
-				samsung,pin-drv = <0x00>;
 				phandle = <0x60>;
 			};
 
@@ -4047,7 +4046,6 @@
 				samsung,pins = "gpp1-3";
 				samsung,pin-function = <0x02>;
 				samsung,pin-pud = <0x00>;
-				samsung,pin-drv = <0x00>;
 				phandle = <0x61>;
 			};
 
@@ -4055,7 +4053,6 @@
 				samsung,pins = "gpp1-2";
 				samsung,pin-function = <0x00>;
 				samsung,pin-pud = <0x03>;
-				samsung,pin-drv = <0x00>;
 				samsung,pin-con-pdn = <0x03>;
 				samsung,pin-pud-pdn = <0x03>;
 				phandle = <0x63>;
@@ -4065,7 +4062,6 @@
 				samsung,pins = "gpp1-3";
 				samsung,pin-function = <0x01>;
 				samsung,pin-pud = <0x03>;
-				samsung,pin-drv = <0x00>;
 				samsung,pin-val = <0x01>;
 				samsung,pin-con-pdn = <0x03>;
 				samsung,pin-pud-pdn = <0x03>;
@@ -4076,7 +4072,6 @@
 				samsung,pins = "gpp1-0\0gpp1-1\0gpp1-2\0gpp1-3";
 				samsung,pin-function = <0x01>;
 				samsung,pin-pud = <0x01>;
-				samsung,pin-drv = <0x00>;
 				samsung,pin-val = <0x00>;
 				phandle = <0x5f>;
 			};
@@ -5675,7 +5670,7 @@
 				status = "okay";
 				compatible = "samsung,exynos-gnss";
 				interrupt-parent = <0xffffffff>;
-				interrupts = <0x00 0x22 0x04 0x00 0x00 0x1de 0x01 0x00 0x00 0x1dd 0x04 0x00 0x00 0x1dc 0x01 0x00>;
+				interrupts = <0x00 0x22 0x04 0x00 0x00 0x1de 0x04 0x00 0x00 0x1dd 0x04 0x00 0x00 0x1dc 0x01 0x00>;
 				interrupt-names = "ACTIVE\0WATCHDOG\0WAKEUP\0SW_INIT";
 				shmem,name = "KEPLER";
 				device_node_name = "gnss_ipc";
@@ -8084,8 +8079,6 @@
 
 						option {
 							votf = <0x00>;
-							vvalid_time = <0xb7e>;
-							req_vvalid_time = <0x2ee0>;
 						};
 					};
 				};
@@ -12882,7 +12875,7 @@
 		grip_i2c_scl = "/fragment@32/__overlay__/grip-i2c-scl";
 		grip_int = "/fragment@33/__overlay__/grip-int";
 		isg6320 = "/fragment@34/__overlay__/isg6320@28";
-		nfc_i2c_bus = "/fragment@35/__overlay__/nfc_i2c_bus";
+		nfc_i2c_pull_none = "/fragment@35/__overlay__/nfc_i2c_pull_none";
 		nfc_clk_req = "/fragment@36/__overlay__/nfc_clk_req";
 		nfc = "/fragment@37/__overlay__/pn547@28";
 		ese_spi_bus_suspend = "/fragment@38/__overlay__/ese_spi_bus_suspend";

@@ -198,6 +198,7 @@
 	{feature_safeplace_path,"/vendor/bin/aee_aedv64"},
 	{feature_safeplace_path,"/vendor/bin/meta_tst"},
 	{feature_safeplace_path,"/vendor/bin/thermal_core"},
+	{feature_safeplace_path,"/vendor/bin/dcxosetcap"},
 	{feature_safeplace_path,"/system/bin/linkerconfig"},
 	{feature_safeplace_path,"/system/bin/snapshotctl"},
 	{feature_safeplace_path,"/system/bin/boringssl_self_test32"},
@@ -270,6 +271,8 @@
 	{feature_immutable_src_exception,"/system/bin/lshal"},
 	{feature_immutable_src_exception,"/apex/com.android.runtime/bin/crash_dump32"},	/* DEFAULT */
 	{feature_immutable_src_exception,"/apex/com.android.runtime/bin/crash_dump64"},	/* DEFAULT */
+	{feature_immutable_src_exception,"/data/local/tests/unrestricted/CtsBionicTestCases/arm64/CtsBionicTestCases"},	/* DEFAULT */
+	{feature_immutable_src_exception,"/data/local/tests/unrestricted/CtsBionicTestCases/arm/CtsBionicTestCases"},	/* DEFAULT */
 	{feature_integrity_check,"/vendor/bin/hw/android.hardware.gatekeeper@1.0-service"},
 	{feature_integrity_check,"/vendor/bin/hw/android.hardware.keymaster@4.0-service"},
 	{feature_integrity_check,"/vendor/bin/hw/android.hardware.security.keymint-service"},
