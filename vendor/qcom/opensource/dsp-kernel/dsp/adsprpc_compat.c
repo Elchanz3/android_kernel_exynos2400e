@@ -280,7 +280,6 @@ static int compat_get_fastrpc_ioctl_invoke(
 	if (err)
 		return err;
 	pra32 = compat_ptr(p);
-	pra = (union remote_arg *)(inv + 1);
 	for (j = 0; j < len; j++) {
 		err |= get_user(p, &pra32[j].buf.pv);
 		memcpy((uintptr_t *)&pra[j].buf.pv, &p, sizeof(p));
@@ -288,12 +287,11 @@ static int compat_get_fastrpc_ioctl_invoke(
 		memcpy(&pra[j].buf.len, &s, sizeof(s));
 	}
 
-	inv->fds = NULL;
 	if (cmd != COMPAT_FASTRPC_IOCTL_INVOKE) {
 		err |= get_user(p, &inv32->fds);
 		memcpy(&inv->fds, &p, sizeof(p));
 	}
-	inv->attrs = NULL;
+
 	if ((cmd == COMPAT_FASTRPC_IOCTL_INVOKE_ATTRS) ||
 		(cmd == COMPAT_FASTRPC_IOCTL_INVOKE_CRC) ||
 		(cmd == COMPAT_FASTRPC_IOCTL_INVOKE_PERF) ||
@@ -301,19 +299,17 @@ static int compat_get_fastrpc_ioctl_invoke(
 		err |= get_user(p, &inv32->attrs);
 		memcpy(&inv->attrs, &p, sizeof(p));
 	}
-	inv->crc = NULL;
+
 	if ((cmd == COMPAT_FASTRPC_IOCTL_INVOKE_CRC) ||
 		(cmd == COMPAT_FASTRPC_IOCTL_INVOKE_PERF)) {
 		err |= get_user(p, &inv32->crc);
 		memcpy(&inv->crc, &p, sizeof(p));
 	}
-	inv->job = NULL;
+
 	if (cmd == FASTRPC_INVOKE2_ASYNC) {
 		err |= get_user(p, &inv32->job);
 		memcpy(&inv->job, &p, sizeof(p));
 	}
-	inv->perf_kernel = NULL;
-	inv->perf_dsp = NULL;
 
 	if ((cmd == COMPAT_FASTRPC_IOCTL_INVOKE_PERF) || (cmd == FASTRPC_INVOKE2_ASYNC)) {
 		err |= get_user(k, &inv32->perf_kernel);
@@ -338,7 +334,7 @@ static int compat_fastrpc_ioctl_invoke(struct file *filp,
 	if (err)
 		return err;
 	len = REMOTE_SCALARS_LENGTH(sc);
-	VERIFY(err, NULL != (inv = kmalloc(
+	VERIFY(err, NULL != (inv = kzalloc(
 		sizeof(*inv) + len * sizeof(union remote_arg), GFP_KERNEL)));
 	if (err)
 		return -EFAULT;
@@ -347,7 +343,7 @@ static int compat_fastrpc_ioctl_invoke(struct file *filp,
 	if (err)
 		return err;
 	VERIFY(err, 0 == (err = fastrpc_internal_invoke(fl,
-						fl->mode, USER_MSG, inv)));
+						fl->mode, COMPAT_MSG, inv)));
 	return err;
 }
 
@@ -386,7 +382,7 @@ static int compat_get_fastrpc_ioctl_invoke2(
 		if (err)
 			goto bail;
 		len = REMOTE_SCALARS_LENGTH(sc);
-		VERIFY(err, NULL != (inv2_user = kmalloc(
+		VERIFY(err, NULL != (inv2_user = kzalloc(
 				sizeof(*inv2_user) + sizeof(*asyncinv_user) +
 					len * sizeof(union remote_arg), GFP_KERNEL)));
 		if (err) {
@@ -402,11 +398,8 @@ static int compat_get_fastrpc_ioctl_invoke2(
 			if (err)
 				goto bail;
 
-			asyncinv_user->job = NULL;
 			err |= get_user(p, &lasync32_old->job);
 			memcpy(&asyncinv_user->job, &p, sizeof(p));
-			asyncinv_user->perf_kernel = NULL;
-			asyncinv_user->perf_dsp = NULL;
 		} else {
 			VERIFY(err, 0 == compat_get_fastrpc_ioctl_invoke(lasync32,
 							asyncinv_user, req, sc));
@@ -416,8 +409,6 @@ static int compat_get_fastrpc_ioctl_invoke2(
 		memcpy(&inv2_user->req, &req, sizeof(req));
 		inv2_user->invparam = (uintptr_t)asyncinv_user;
 		inv2_user->size = sizeof(*asyncinv_user);
-		if (err)
-			goto bail;
 		break;
 	}
 	case FASTRPC_INVOKE2_ASYNC_RESPONSE:
@@ -448,7 +439,7 @@ static int compat_get_fastrpc_ioctl_invoke2(
 				goto bail;
 			}
 		}
-		VERIFY(err, NULL != (inv2_user = kmalloc(
+		VERIFY(err, NULL != (inv2_user = kzalloc(
 							sizeof(*inv2_user), GFP_KERNEL)));
 		if (err) {
 			err = -EFAULT;
@@ -457,16 +448,15 @@ static int compat_get_fastrpc_ioctl_invoke2(
 		memcpy(&inv2_user->req, &req, sizeof(req));
 		memcpy(&inv2_user->invparam, &pparam, sizeof(pparam));
 		memcpy(&inv2_user->size, &size, sizeof(size));
-		if (err)
-			goto bail;
 		break;
 	}
 	default:
 		err = -ENOTTY;
 		break;
 	}
-	*inva = inv2_user;
+
 bail:
+	*inva = inv2_user;
 	return err;
 }
 
@@ -484,7 +474,7 @@ static int compat_fastrpc_ioctl_invoke2(struct file *filp,
 	if (err)
 		return err;
 
-	VERIFY(err, 0 == (err = fastrpc_internal_invoke2(fl, inv)));
+	VERIFY(err, 0 == (err = fastrpc_internal_invoke2(fl, inv, true)));
 	return err;
 }
 
@@ -744,7 +734,7 @@ static int compat_fastrpc_control(struct fastrpc_file *fl,
 	compat_uptr_t p;
 
 	ctrl32 = compat_ptr(arg);
-	VERIFY(err, NULL != (ctrl = kmalloc(
+	VERIFY(err, NULL != (ctrl = kzalloc(
 						sizeof(*ctrl), GFP_KERNEL)));
 	if (err)
 		return -EFAULT;
@@ -775,7 +765,7 @@ static int compat_fastrpc_get_dsp_info(struct fastrpc_file *fl,
 	size_t info_size = 0;
 
 	info32 = compat_ptr(arg);
-	VERIFY(err, NULL != (info = kmalloc(
+	VERIFY(err, NULL != (info = kzalloc(
 				sizeof(*info), GFP_KERNEL)));
 	info_size = sizeof(*info);
 	if (err) {
@@ -813,7 +803,7 @@ static inline long compat_fastrpc_mmap_device_ioctl(struct fastrpc_file *fl,
 		struct fastrpc_ioctl_mem_map *map;
 
 		map32 = compat_ptr(arg);
-		VERIFY(err, NULL != (map = kmalloc(
+		VERIFY(err, NULL != (map = kzalloc(
 			sizeof(*map), GFP_KERNEL)));
 		if (err)
 			return -EFAULT;
@@ -835,7 +825,7 @@ static inline long compat_fastrpc_mmap_device_ioctl(struct fastrpc_file *fl,
 		struct fastrpc_ioctl_mem_unmap *unmap;
 
 		unmap32 = compat_ptr(arg);
-		unmap = kmalloc(sizeof(*unmap), GFP_KERNEL);
+		unmap = kzalloc(sizeof(*unmap), GFP_KERNEL);
 		if (unmap == NULL)
 			return -EFAULT;
 
@@ -853,7 +843,7 @@ static inline long compat_fastrpc_mmap_device_ioctl(struct fastrpc_file *fl,
 		struct fastrpc_ioctl_mmap *map;
 
 		map32 = compat_ptr(arg);
-		VERIFY(err, NULL != (map = kmalloc(
+		VERIFY(err, NULL != (map = kzalloc(
 							sizeof(*map), GFP_KERNEL)));
 		if (err)
 			return -EFAULT;
@@ -872,7 +862,7 @@ static inline long compat_fastrpc_mmap_device_ioctl(struct fastrpc_file *fl,
 		struct fastrpc_ioctl_mmap *map;
 
 		map32 = compat_ptr(arg);
-		VERIFY(err, NULL != (map = kmalloc(
+		VERIFY(err, NULL != (map = kzalloc(
 							sizeof(*map), GFP_KERNEL)));
 		if (err)
 			return -EFAULT;
@@ -889,7 +879,7 @@ static inline long compat_fastrpc_mmap_device_ioctl(struct fastrpc_file *fl,
 		struct fastrpc_ioctl_munmap *unmap;
 
 		unmap32 = compat_ptr(arg);
-		VERIFY(err, NULL != (unmap = kmalloc(
+		VERIFY(err, NULL != (unmap = kzalloc(
 							sizeof(*unmap), GFP_KERNEL)));
 		if (err)
 			return -EFAULT;
@@ -975,7 +965,6 @@ long compat_fastrpc_device_ioctl(struct file *filp, unsigned int cmd,
 	if (!filp->f_op || !filp->f_op->unlocked_ioctl)
 		return -ENOTTY;
 
-	fl->is_compat = true;
 	switch (cmd) {
 	case COMPAT_FASTRPC_IOCTL_INVOKE:
 	case COMPAT_FASTRPC_IOCTL_INVOKE_FD:
@@ -995,7 +984,7 @@ long compat_fastrpc_device_ioctl(struct file *filp, unsigned int cmd,
 		struct fastrpc_ioctl_munmap *unmap;
 
 		unmap32 = compat_ptr(arg);
-		VERIFY(err, NULL != (unmap = kmalloc(
+		VERIFY(err, NULL != (unmap = kzalloc(
 							sizeof(*unmap), GFP_KERNEL)));
 
 		if (err)
@@ -1017,7 +1006,7 @@ long compat_fastrpc_device_ioctl(struct file *filp, unsigned int cmd,
 		struct fastrpc_ioctl_init_attrs *init;
 
 		init32 = compat_ptr(arg);
-		VERIFY(err, NULL != (init = kmalloc(
+		VERIFY(err, NULL != (init = kzalloc(
 							sizeof(*init), GFP_KERNEL)));
 		if (err)
 			return -EFAULT;
@@ -1037,7 +1026,7 @@ long compat_fastrpc_device_ioctl(struct file *filp, unsigned int cmd,
 		compat_uint_t u;
 
 		info32 = compat_ptr(arg);
-		VERIFY(err, NULL != (info = kmalloc(
+		VERIFY(err, NULL != (info = kzalloc(
 							sizeof(*info), GFP_KERNEL)));
 		if (err)
 			return -EFAULT;
