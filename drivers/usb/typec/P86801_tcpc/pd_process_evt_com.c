@@ -129,6 +129,11 @@ static inline bool pd_process_ctrl_msg_vconn_swap(
  * [BLOCK] BIST
  */
 
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#if 0 //def CONFIG_QGKI_BUILD
+extern void wtchg_turn_on_hiz(void);
+#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 static inline bool pd_process_data_msg_bist(
 	struct pd_port *pd_port, struct pd_event *pd_event)
 {
@@ -148,6 +153,15 @@ static inline bool pd_process_data_msg_bist(
 
 	case BDO_MODE_CARRIER2:
 		PE_DBG("bist_cm2\n");
+		/* Stop sinking to help eye diagram case. */
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+		if (pd_port->power_role == PD_ROLE_SINK){
+#if 0//def CONFIG_QGKI_BUILD
+		wtchg_turn_on_hiz();
+#endif //CONFIG_QGKI_BUILD
+			tcpci_sink_vbus(tcpc, TCP_VBUS_CTRL_PD, TCPC_VBUS_SINK_5V, 0);
+		}
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 		PE_TRANSIT_STATE(pd_port, PE_BIST_CARRIER_MODE_2);
 		pd_noitfy_pe_bist_mode(pd_port, PD_BIST_MODE_DISABLE);
 		return true;

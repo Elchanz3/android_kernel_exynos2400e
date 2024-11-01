@@ -41,12 +41,23 @@ extern int chipone_charger_mode_status;
 #endif
 //-P86801AA1,peiyuexiang.wt,modify,2023/06/19,add charger_mode
 
+//+ReqP86801AA2-3327, liwei19.wt, add, 20240318, iphone smart switch need 5V 0A.
+#ifdef CONFIG_QGKI_BUILD
+extern void pd_dpm_send_source_caps_0a(bool val);extern void aw_retry_source_cap(int cur);extern int is_aw35615;
+#endif
+//-ReqP86801AA2-3327, liwei19.wt, add, 20240318, iphone smart switch need 5V 0A.
+
 bool lcd_on_state=1;
 //+ReqP86801AA1-3595, liyiying.wt, add, 20230801, Configure SEC_BAT_CURRENT_EVENT_HV_DISABLE
+//+P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
 #ifdef CONFIG_QGKI_BUILD
 bool batt_hv_disable = 0;
+int wt_chg_probe_status = WT_PROBE_STATUS_UNKNOW;
 #endif
+//-P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
 //-ReqP86801AA1-3595, liyiying.wt, add, 20230801, Configure SEC_BAT_CURRENT_EVENT_HV_DISABLE
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+struct wt_chg *g_wt_chg = NULL;
 
 enum {
 	QTI_POWER_SUPPLY_USB_TYPE_HVDCP = 0x80,
@@ -819,6 +830,51 @@ static void wtchg_set_main_input_suspend(struct wt_chg *chg, int enable)
 		dev_err(chg->dev, "%s: fail: %d\n", __func__, ret);
 	}
 }
+//+P231018-03087 gudi.wt 20231103,fix add hiz func
+#if 0
+void __attribute__((weak)) typec_set_input_suspend_for_usbif_cx25890h(bool enable)
+{
+}
+void __attribute__((weak)) typec_set_input_suspend_for_usbif_upm6910(bool enable)
+{
+}
+
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+void wtchg_turn_on_hiz(void)
+{
+
+	if(g_wt_chg == NULL){
+		return;
+	}
+
+	typec_set_input_suspend_for_usbif_cx25890h(1);
+	typec_set_input_suspend_for_usbif_upm6910(1);
+	//	ret = wtchg_write_iio_prop(g_wt_chg, MAIN_CHG, MAIN_CHARGER_HZ, 1);
+	//	if (ret < 0) {
+	//		dev_err(g_wt_chg->dev, "%s: fail: %d\n", __func__, ret);
+	//}
+
+}
+EXPORT_SYMBOL(wtchg_turn_on_hiz);
+
+void wtchg_turn_off_hiz(void)
+{
+	if(g_wt_chg == NULL){
+		return;
+	}
+
+	typec_set_input_suspend_for_usbif_cx25890h(0);
+	typec_set_input_suspend_for_usbif_upm6910(0);
+	//ret = wtchg_write_iio_prop(g_wt_chg, MAIN_CHG, MAIN_CHARGER_HZ, 0);
+	//if (ret < 0) {
+	//	 dev_err(g_wt_chg->dev, "%s: fail: %d\n", __func__, ret);
+	//}
+
+}
+EXPORT_SYMBOL(wtchg_turn_off_hiz);
+#endif
+//-P231018-03087 gudi.wt 20231103,fix add hiz func
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 
 #ifdef CONFIG_QGKI_BUILD
 static void wtchg_set_main_chg_rerun_apsd(struct wt_chg *chg, int val)
@@ -1353,7 +1409,7 @@ static int wtchg_get_batt_capacity(struct wt_chg *chg)
 	if (100 == chg->batt_capacity && 100 != chg->batt_capacity_max && chg->chg_status == POWER_SUPPLY_STATUS_CHARGING) {
 		if (time_is_before_jiffies(chg->batt_full_check_timer + 2 * HZ)) {
 			pr_err("update battery max capacity counter \n");
-			if (chg->chg_current <= BATTERY_FULL_TERM_CURRENT) {
+			if ((chg->chg_current <= BATTERY_FULL_TERM_CURRENT) || (chg->batt_time <= 15)){
 				chg->batt_full_check_counter++;
 			} else {
 				chg->batt_full_check_counter--;
@@ -1361,7 +1417,9 @@ static int wtchg_get_batt_capacity(struct wt_chg *chg)
 
 			if (chg->batt_full_check_counter >= BATTERY_FULL_MAX_CNT_DESIGN) {
 				chg->batt_full_check_counter=BATTERY_FULL_MAX_CNT_DESIGN;
-				chg->batt_capacity_max = 100;
+				if ((chg->chg_current <= BATTERY_FULL_TERM_CURRENT) || (chg->batt_time == 0)){
+					chg->batt_capacity_max = 100;
+				}
 			} else if(chg->batt_full_check_counter<0)
 				chg->batt_full_check_counter = 0;
 
@@ -2038,10 +2096,23 @@ static int wtchg_init_thermal_engine_table(struct wt_chg *chg)
 
 	// board thermal
 	for (i = BOARD_THERMAL_ENGINE_BC12; i < BOARD_THERMAL_ENGINE_UNKNOW; i++) {
-		ret = wtchg_parse_thermal_engine_table(chg,
-				   thermal_engine_type_names[i],
-				   &chg->thermal_engine_tab_size[i],
-				   &chg->thermal_engine_tab_array[i]);
+		//+P86801EA2-279 liwei19.wt,add.20240308,modify quiet thermal
+		#ifdef CONFIG_AMERICA_VERSION
+		if (BOARD_THERMAL_ENGINE_FCHG == i) {
+			ret = wtchg_parse_thermal_engine_table(chg,
+					   NA_BOARD_THERMAL_ENGINE_PROP,
+					   &chg->thermal_engine_tab_size[i],
+					   &chg->thermal_engine_tab_array[i]);
+		} else {
+		#endif
+			ret = wtchg_parse_thermal_engine_table(chg,
+					   thermal_engine_type_names[i],
+					   &chg->thermal_engine_tab_size[i],
+					   &chg->thermal_engine_tab_array[i]);
+		#ifdef CONFIG_AMERICA_VERSION
+		}
+		#endif
+		//-P86801EA2-279 liwei19.wt,add.20240308,modify quiet thermal
 		if (ret)
 			return ret;
 	}
@@ -2246,6 +2317,13 @@ static void wtchg_thermal_engine_machine(struct wt_chg *chg)
 				target_usb_port_thermal_cur, target_main_chg_thermal_cur, target_board_pcb_thermal_cur, chg->thermal_ibatt);
 }
 //-bug761884, tankaikun@wt, add 20220811, thermal step charge strategy
+
+//+P86801EA2-300 gudi.wt battery protect function
+#ifdef CONFIG_QGKI_BUILD
+extern bool sgm41542_if_been_used(void);
+extern bool cx25890h_if_been_used(void);
+#endif
+//-P86801EA2-300 gudi.wt battery protect function
 
 static void wtchg_sw_jeita_state_machine(struct wt_chg *chg)
 {
@@ -2649,20 +2727,45 @@ static void wtchg_sw_jeita_state_machine(struct wt_chg *chg)
 	}
 
 	//+P86801AA1-3622, gudi.wt, 20230705, battery protect func
-	if (chg->jeita_batt_cv > BATT_HIGH_TEMP_CV) {
-		wtchg_get_batt_cycle(chg);
-		if (chg->batt_cycle > 999)
-			chg->jeita_batt_cv = 4290;
-		else if (chg->batt_cycle > 699)
-			chg->jeita_batt_cv = 4310;
-		else if (chg->batt_cycle > 399)
-			chg->jeita_batt_cv = 4330;
-		else if (chg->batt_cycle > 299)
-			chg->jeita_batt_cv = 4350;
-		else
-			chg->jeita_batt_cv = 4400;
+
+//+P86801EA2-300 gudi.wt battery protect function
+//+P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+#ifdef CONFIG_QGKI_BUILD
+	if(sgm41542_if_been_used()){
+		if (chg->jeita_batt_cv > BATT_HIGH_TEMP_CV) {
+			wtchg_get_batt_cycle(chg);
+			if (chg->batt_cycle > 999)
+				chg->jeita_batt_cv = 4240;    //1000+
+			else if (chg->batt_cycle > 699)
+				chg->jeita_batt_cv = 4280;    //700-999
+			else if (chg->batt_cycle > 399) 
+				chg->jeita_batt_cv = 4310;    //400-699
+			else if (chg->batt_cycle > 299)  
+				chg->jeita_batt_cv = 4330;    //300-399
+			else
+				chg->jeita_batt_cv = 4350;    //0-299
+			chg->wt_batt_cv= chg->jeita_batt_cv;
+		}
+	}else if(cx25890h_if_been_used()){
+		if (chg->jeita_batt_cv > BATT_HIGH_TEMP_CV) {
+			wtchg_get_batt_cycle(chg);
+			if (chg->batt_cycle > 999)
+				chg->jeita_batt_cv = 4272;    //1000+
+			else if (chg->batt_cycle > 699)
+				chg->jeita_batt_cv = 4320;    //700-999
+			else if (chg->batt_cycle > 399)
+				chg->jeita_batt_cv = 4336;    //400-699
+			else if (chg->batt_cycle > 299)
+				chg->jeita_batt_cv = 4352;    //300-399
+			else
+				chg->jeita_batt_cv = 4368;    //0-299
+			chg->wt_batt_cv= chg->jeita_batt_cv;
+		}
 	}
-	//-P86801AA1-3622, gudi.wt, 20230705, battery protect func
+#endif
+//-P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+//-P86801EA2-300 gudi.wt battery protect function
+
 
 	dev_err(chg->dev, "batt_temp=%d, jeita_status=%d, board_temp=%d,lcd_on=%d, vbat_over_flag=%d, vbat_update_time=%d, vbat_over_count=%d, batt_volt=%d, batt_cycle=%d\n",
 				chg->batt_temp, batt_jeita_stat, chg->board_temp, chg->lcd_on, chg->vbat_over_flag,
@@ -2704,12 +2807,18 @@ static void wtchg_battery_status_check(struct wt_chg *chg)
 	int max_fv_uv, recharg_offset_vol_uv;
 	int ibat_ua;
 	int design_max_fv_uv;
-
+	//+P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
 	max_fv_uv = chg->jeita_batt_cv * 1000;
-	design_max_fv_uv = BATT_NORMAL_CV * 1000;
+	design_max_fv_uv = chg->wt_batt_cv * 1000;
 	ibat_ua = chg->chg_current*1000-ITERM_OFFSET_UA;
-	recharg_offset_vol_uv = chg->batt_recharge_offset_vol;
-
+	if ((chg->batt_full_capacity == POWER_SUPPLY_CAPACITY_100) && (chg->batt_soc_rechg == 1)) {
+		recharg_offset_vol_uv = BATT_BASIC_VRECHG;
+		chg->batt_capacity_recharge = BATT_BASIC_SOC_RECHG;
+	} else {
+		recharg_offset_vol_uv = chg->batt_recharge_offset_vol;
+		chg->batt_capacity_recharge = BATT_NORMAL_SOC_RECHG;
+	}
+	//-P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
 	if (CHRG_STATE_STOP == chg->chg_state_step) {
 		if (chg->usb_online ||chg->ac_online || chg->wl_online) {
 			chg->chg_state_step = CHRG_STATE_FAST;
@@ -2742,8 +2851,10 @@ static void wtchg_battery_status_check(struct wt_chg *chg)
 			chg->chg_status_hyst_cnt = 0;
 			chg->chg_state_step = CHRG_STATE_TAPER;
 		}
-		if (ibat_ua <= chg->batt_iterm && time_is_before_jiffies(chg->chg_state_update_timer + 5*HZ)
-				&& 0 == chg->wt_discharging_state && 0 != chg->chg_ibatt) {
+		//P231120-04562 liwei19.wt 20231226, solve the problem that soc may be less than 100 when cutoff charging.
+		if ((100 == chg->batt_capacity) && (ibat_ua <= chg->batt_iterm)
+			&& (0 == chg->wt_discharging_state) && (0 != chg->chg_ibatt)
+			&& time_is_before_jiffies(chg->chg_state_update_timer + 5*HZ)) {
 			if(!wtchg_wake_active(&chg->wtchg_iterm_wake_source)){
 				wtchg_stay_awake(&chg->wtchg_iterm_wake_source);
 			}
@@ -2758,7 +2869,7 @@ static void wtchg_battery_status_check(struct wt_chg *chg)
 				}
 				pr_err("wtchg charge state from TAPER change to FULL \n");
 			}
-		} else if (ibat_ua > chg->batt_iterm) {
+		} else if ((100 != chg->batt_capacity) || (ibat_ua > chg->batt_iterm)) {
 				chg->chg_iterm_cnt = 0;
 				if (wtchg_wake_active(&chg->wtchg_iterm_wake_source)) {
 					wtchg_relax(&chg->wtchg_iterm_wake_source);
@@ -2996,6 +3107,13 @@ static void wtchg_charge_strategy_machine(struct wt_chg *chg)
 		break;
 	}
 #ifdef CONFIG_QGKI_BUILD
+	}else{
+//+P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
+		chg->chg_type_ibatt = FCC_1600_MA;
+		pr_err("chg->chg_type_ibatt = FCC_1600_MA\n");
+//-P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
+		wtchg_set_chg_input_current(chg);
+		wtchg_set_chg_ibat_current(chg);
 	}
 #endif
 }
@@ -3027,7 +3145,10 @@ static int wtchg_batt_init_config(struct wt_chg *chg)
 	chg->safety_timeout = false;
 	chg->max_charging_time = 17 * 60 * 60;
 	chg->wt_discharging_state = 0;
-	chg->batt_full_capacity = 100;
+	//+P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
+	chg->batt_full_capacity = 0;
+	chg->batt_soc_rechg = 0;
+	//-P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
 	chg->lcd_on = lcd_on_state;
 
 	chg->batt_temp_debug_flag = false;
@@ -3248,7 +3369,10 @@ static int wtchg_store_mode_manage(struct wt_chg *chg)
 static int wtchg_battery_slate_mode_manage(struct wt_chg *chg)
 {
 	int ret = 0;
-
+	/*+P231218-05362  guhan01.wt 20231223,modify for Node batt_ Slate_ When the mode write value is 3,*/
+	if (chg->batt_slate_mode == SEC_SMART_SWITCH_SRC)
+		return ret;
+	/*-P231218-05362  guhan01.wt 20231223,modify for Node batt_ Slate_ When the mode write value is 3*/
 	if ((chg->wt_discharging_state & DISCHARGING_STATE_SLATEMODE) != 0 &&
 			!chg->batt_slate_mode) {
 		chg->wt_discharging_state &= ~DISCHARGING_STATE_SLATEMODE;
@@ -3268,32 +3392,57 @@ static int wtchg_battery_slate_mode_manage(struct wt_chg *chg)
 	return ret;
 }
 
+//+P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
 static int wtchg_batt_full_capacity_manage(struct wt_chg *chg)
 {
 	int ret = 0;
 
-	if ((chg->wt_discharging_state & DISCHARGING_STATE_FULLCAPACITY) != 0 &&
-			(chg->batt_full_capacity == 100 || chg->batt_capacity <= (chg->batt_full_capacity - 2))) {
-		chg->wt_discharging_state &= ~DISCHARGING_STATE_FULLCAPACITY;
-		dev_err(chg->dev, "%s, capacity:%d %d, discharging_state:%d, ready charging\n", __func__,
-			chg->batt_capacity, chg->batt_full_capacity, chg->wt_discharging_state);
-		if ((chg->wt_discharging_state & DISCHARGING_BY_DISABLE) == 0) {
-			wtchg_set_main_chg_enable(chg, true);
-			msleep(10);
-		}
-	} else if ((chg->wt_discharging_state & DISCHARGING_STATE_FULLCAPACITY) != 0 ||
-			(chg->batt_full_capacity != 100 && chg->batt_capacity >= chg->batt_full_capacity)) {
-		chg->wt_discharging_state |= DISCHARGING_STATE_FULLCAPACITY;
-		chg->chg_ibatt = FCC_0_MA;
-		chg->chg_type_input_curr = FCC_100_MA;
-		wtchg_set_main_chg_enable(chg, false);
-		wtchg_set_chg_input_current(chg);
-		wtchg_set_chg_ibat_current(chg);
-		dev_err(chg->dev, "%s, capacity:%d %d, stop charging\n", __func__, chg->batt_capacity, chg->batt_full_capacity);
-	}
+	if (chg->batt_full_capacity != POWER_SUPPLY_CAPACITY_100) {
+		if (chg->batt_capacity >= 80) {
+			chg->wt_discharging_state |= DISCHARGING_STATE_FULLCAPACITY;
+			chg->chg_ibatt = FCC_0_MA;
+			chg->chg_type_input_curr = FCC_500_MA;
+			if (chg->batt_full_capacity == POWER_SUPPLY_CAPACITY_80_HIGHSOC) {
+				wtchg_set_main_input_suspend(chg, true);
+			} else {
+				wtchg_set_main_input_suspend(chg, false);
+				msleep(50);
+			}
+			wtchg_set_main_chg_enable(chg, false);
+			wtchg_set_chg_input_current(chg);
+			wtchg_set_chg_ibat_current(chg);
 
+			pr_err("%s, soc over 80, stop charging\n",__func__);
+		} else if ((chg->batt_capacity <= 77) && ((chg->wt_discharging_state & DISCHARGING_STATE_FULLCAPACITY) != 0)) {
+			chg->wt_discharging_state &= ~DISCHARGING_STATE_FULLCAPACITY;
+			pr_err("%s, soc lower than 80, ready charging\n", __func__);
+			if (((chg->wt_discharging_state & DISCHARGING_BY_DISABLE) == 0) && ((chg->wt_discharging_state & DISCHARGING_STATE_SLATEMODE) ==0)) {
+				//if (chg->batt_full_capacity == POWER_SUPPLY_CAPACITY_80_HIGHSOC) {
+					wtchg_set_main_input_suspend(chg, false);
+					msleep(50);
+				//}
+				wtchg_set_main_chg_enable(chg, true);
+				msleep(10);
+			}
+		}
+	} else {
+		if ((chg->wt_discharging_state & DISCHARGING_STATE_FULLCAPACITY) != 0) {
+			chg->wt_discharging_state &= ~DISCHARGING_STATE_FULLCAPACITY;
+			if (((chg->wt_discharging_state & DISCHARGING_BY_DISABLE) == 0)
+				&& ((chg->wt_discharging_state & DISCHARGING_STATE_SLATEMODE) ==0)) {
+				wtchg_set_main_input_suspend(chg, false);
+				msleep(50);
+				wtchg_set_main_chg_enable(chg, true);
+				msleep(10);
+			}
+		}
+	}
+	pr_err("%s: batt_full_capacity=%d, batt_soc_rechg=%d, batt_capacity=%d\n",
+		__func__, chg->batt_full_capacity, chg->batt_soc_rechg,
+		chg->batt_capacity);
 	return ret;
 }
+//-P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
 #endif
 
 //+bug 769367, tankaikun@wt, add 20220902, fix charge status is full but capacity is lower than 100%
@@ -3321,9 +3470,13 @@ static void wtchg_battery_check_eoc_condition(struct wt_chg *chg)
 		chg->eoc_reported = true;
 	}
 
+//+P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
+#if 0
 	if (chg->eoc_reported == true) {
 		chg->batt_capacity = 100;
 	}
+#endif
+//-P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
 }
 //-bug 769367, tankaikun@wt, add 20220902, fix charge status is full but capacity is lower than 100%
 
@@ -3374,6 +3527,14 @@ static void wtchg_float_charge_type_check(struct work_struct *work)
 			goto float_recheck_exit;
 		}
 
+/*+P231019-06775 dunweichao.wt 20231030,add for PD hub not recheck*/
+		if(chg->real_type == POWER_SUPPLY_TYPE_USB_PD){
+			dev_err(chg->dev, "PD:usb connect, skip usb_type recheck\n");
+			goto float_recheck_exit;
+		}
+/*-P231019-06775 dunweichao.wt 20231030,add for PD hub not recheck*/
+
+
 		dev_err(chg->dev, "wait for usb_connect:%d, count:%d\n", chg->usb_connect, i);
 	}
 
@@ -3421,6 +3582,22 @@ static void wtchg_alarm_work(struct work_struct *work)
 }
 //+bug761884, tankaikun@wt, add 20220831, fix iic read/write return -13 when system suspend
 
+//+P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+#ifdef CONFIG_QGKI_BUILD
+static void wtchg_check_probe_begin_time(struct wt_chg *chg)
+{
+	struct timespec time_now;
+	time_now = ktime_to_timespec(ktime_get_boottime());
+
+	if (time_now.tv_sec - chg->probe_begin_time.tv_sec >= WT_PROBE_TIME_MAX) {
+		dev_err(chg->dev, "%s: probe timeout: %d %d\n", __func__,
+			chg->probe_begin_time.tv_sec, time_now.tv_sec);
+		wt_chg_probe_status = WT_PROBE_STATUS_TIMEOUT;
+	}
+}
+#endif
+//-P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+
 static void wt_chg_main(struct work_struct *work)
 {
 	struct wt_chg *chg = container_of(work,
@@ -3445,6 +3622,13 @@ static void wt_chg_main(struct work_struct *work)
 	wtchg_get_vbus_voltage(chg);
 	wtchg_get_batt_capacity(chg);
 	//wtchg_kernel_power_off_check(chg);
+//+P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+#ifdef CONFIG_QGKI_BUILD
+	if (wt_chg_probe_status == WT_PROBE_STATUS_START) {
+		wtchg_check_probe_begin_time(chg);
+	}
+#endif
+//-P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
 
 #ifdef CONFIG_QGKI_BUILD
 	pr_err("chg_type: %d, vbus_online: %d, vbus_volt: %d, chg_status: %d, batt_volt: %d, batt_current: %d, temp: %d, health: %d, batt_full_cnt: %d, max_cap:%d, capacity: %d batt_hv_disable:%d usb_connect:%d batt_capacity_level: %d, shutdown_check_ok: %d\n",
@@ -3479,9 +3663,12 @@ static void wt_chg_main(struct work_struct *work)
 		chg->chg_type_ibatt = FCC_0_MA; //unplug current set
 		chg->chg_type_input_curr = FCC_100_MA; //unplug current set
 //		pr_err("TP_LOG:%s:[tp charger]vbus_online: %d", __func__, chg->vbus_online);
+//P231020-06549 gudi.wt,20231023,turn off hiz when plug out
+		//wtchg_turn_off_hiz();
 	} else if (chg->vbus_online == 1) {
 		if (chg->pre_vbus_online == 0 ) {
 			//wtchg_float_charge_type_check(chg);
+
 		}
 		chg->pre_vbus_online = chg->vbus_online;
 		Himax_USB_detect_flag = 1;
@@ -3504,26 +3691,54 @@ static void wt_chg_main(struct work_struct *work)
 #endif
 		wtchg_battery_check_recharge_condition(chg);
 		wtchg_ato_charge_manage(chg);
+
+/*+P86801AA2-1813 liwei19.wt 20231124,modify for usb not recheck when poweroff charging*/
 #ifdef CONFIG_QGKI_BUILD
 		if (chg->real_type == POWER_SUPPLY_TYPE_USB_FLOAT
 				|| (chg->real_type == POWER_SUPPLY_TYPE_USB
-						&& (!chg->usb_connect))) {
+				&& (get_boot_mode() == 0) && (!chg->usb_connect))) {
 			schedule_delayed_work(&chg->wt_float_recheck_work, 0);
 		}
 #endif
+/*-P86801AA2-1813 liwei19.wt 20231124,modify for usb not recheck when poweroff charging*/
 
 		chg->chg_init_flag = false;
 		if (chg->ato_soc_user_control)
 			chg->interval_time = CHARGE_ONLINE_ATO_INTERVAL_MS;
 		else
 			chg->interval_time = CHARGE_ONLINE_INTERVAL_MS;
+
+		if(get_boot_mode() || !((chg->real_type == POWER_SUPPLY_TYPE_USB) || (chg->real_type == POWER_SUPPLY_TYPE_USB_CDP))){
+			if(!wtchg_wake_active(&chg->wtchg_off_charger_wake_source)){
+				wtchg_stay_awake(&chg->wtchg_off_charger_wake_source);
+			}
+		}
 	} else {
 		wtchg_init_chg_parameter(chg);
+//+P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+#ifdef CONFIG_QGKI_BUILD
+		if ((chg->vbus_online == 1) && ((chg->wt_discharging_state & DISCHARGING_STATE_FULLCAPACITY) != 0)) {
+			pr_err("It's 80 highsoc, checking full capacity\n");
+			wtchg_batt_full_capacity_manage(chg);
+		}
+#endif
+//-P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+
 		chg->interval_time = CHARGE_ONLINE_INTERVAL_MS;
 
 		chg->usb_connect = false;
 		chg->safety_timeout = false;
+
+//+P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
+#ifdef CONFIG_QGKI_BUILD
+		if (!((chg->vbus_online == 1) && ((chg->wt_discharging_state & DISCHARGING_STATE_FULLCAPACITY) != 0))) {
+			pr_err("It's 80 highsoc, don't clear discharging state\n");
+			chg->wt_discharging_state &= DISCHARGING_BY_HIZ;
+		}
+#else
 		chg->wt_discharging_state &= DISCHARGING_BY_HIZ;
+#endif
+//-P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
 		chg->rerun_adsp_count = 0;
 
 		//+chk3593, liyiying.wt, 2022/7/21, add, judge the vbat if over the cv value
@@ -3552,6 +3767,11 @@ static void wt_chg_main(struct work_struct *work)
 			wtchg_relax(&chg->wtchg_iterm_wake_source);
 		}
 		//-bug825533, tankaikun@wt, add 20230216, add software control iterm
+		if(get_boot_mode() || !((chg->real_type == POWER_SUPPLY_TYPE_USB) || (chg->real_type == POWER_SUPPLY_TYPE_USB_CDP))){
+			if(wtchg_wake_active(&chg->wtchg_off_charger_wake_source)){
+				wtchg_relax(&chg->wtchg_off_charger_wake_source);
+			}
+		}
 	}
 
 #ifdef CONFIG_QGKI_BUILD
@@ -3634,8 +3854,9 @@ static int wtchg_batt_parse_dt(struct wt_chg *chg)
 	//+bug792983, tankaikun@wt, add 20220831, fix device recharge but no charging icon
 	ret = of_property_read_u32(node,
 				"qcom,auto-recharge-soc", &chg->batt_capacity_recharge);
+	//P240307-04695, liwei19.wt, modify, 20240319, New requirements for one ui 6.1 charging protection.
 	if (ret < 0)
-		chg->batt_capacity_recharge = 98;
+		chg->batt_capacity_recharge = BATT_NORMAL_SOC_RECHG;
 	else
 		pr_err("recharge_capacity: %d\n",chg->batt_capacity_recharge);
 	//-bug792983, tankaikun@wt, add 20220831, fix device recharge but no charging icon
@@ -4017,6 +4238,13 @@ static int wtchg_batt_set_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_BATT_SLATE_MODE:
 		chg->batt_slate_mode = val->intval;
 		wtchg_set_charge_work(chg);
+		//+ReqP86801AA2-3327, liwei19.wt, add, 20240318, iphone smart switch need 5V 0A.
+		if (chg->batt_slate_mode == SEC_SMART_SWITCH_SRC) {			if(is_aw35615)				aw_retry_source_cap(0);			else				pd_dpm_send_source_caps_0a(true);
+			pr_err("iphone smart switch\n");
+		} else if (chg->batt_slate_mode == SEC_SLATE_OFF) {			if(is_aw35615)				aw_retry_source_cap(500);			else				pd_dpm_send_source_caps_0a(false);
+			pr_err("cancel iphone smart switch\n");
+		}
+		//-ReqP86801AA2-3327, liwei19.wt, add, 20240318, iphone smart switch need 5V 0A.
 		break;
 	case POWER_SUPPLY_PROP_BATT_FULL_CAPACITY:
 		chg->batt_full_capacity = val->intval;
@@ -4104,6 +4332,138 @@ static ssize_t store_store_mode(
 }
 
 static DEVICE_ATTR(store_mode, 0664, show_store_mode,store_store_mode);
+
+//+P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+static ssize_t show_batt_soc_rechg(
+	struct device *dev, struct device_attribute *attr,
+					       char *buf)
+{
+	struct power_supply *psy = dev_get_drvdata(dev);
+	struct wt_chg *chg = power_supply_get_drvdata(psy);
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n",chg->batt_soc_rechg);
+}
+
+static ssize_t store_batt_soc_rechg(
+	struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t size)
+{
+	struct power_supply *psy = dev_get_drvdata(dev);
+	struct wt_chg *chg = power_supply_get_drvdata(psy);
+	int val;
+
+	if (kstrtoint(buf, 10, &val) == 0){
+		chg->batt_soc_rechg = val;
+	//	wtchg_set_charge_work(chg);
+	}else if (sscanf(buf, "%10d\n", &val) == 1){
+		chg->batt_soc_rechg = val;
+	//	wtchg_set_charge_work(chg);
+	}
+
+	return size;
+}
+static DEVICE_ATTR(batt_soc_rechg, 0664, show_batt_soc_rechg,store_batt_soc_rechg);
+//-P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+
+//+P86801AA1-13521 gudi.wt,20231009, add Battery EU ECO design
+static ssize_t show_batt_temp(
+	struct device *dev, struct device_attribute *attr,
+					       char *buf)
+{
+	struct power_supply *psy = dev_get_drvdata(dev);
+	struct wt_chg *chg = power_supply_get_drvdata(psy);
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n",chg->batt_temp);
+}
+
+static ssize_t store_batt_temp(
+	struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t size)
+{
+	struct power_supply *psy = dev_get_drvdata(dev);
+	struct wt_chg *chg = power_supply_get_drvdata(psy);
+	int val;
+
+	if (kstrtoint(buf, 10, &val) == 0){
+		chg->batt_temp = val;
+		wtchg_set_charge_work(chg);
+	}else if (sscanf(buf, "%10d\n", &val) == 1){
+		chg->batt_temp = val;
+		wtchg_set_charge_work(chg);
+	}
+
+	return size;
+}
+
+static DEVICE_ATTR(batt_temp, 0664, show_batt_temp,store_batt_temp);
+
+
+static ssize_t show_battery_cycle(
+	struct device *dev, struct device_attribute *attr,
+					       char *buf)
+{
+	struct power_supply *psy = dev_get_drvdata(dev);
+	struct wt_chg *chg = power_supply_get_drvdata(psy);
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n",chg->batt_cycle);
+}
+
+static ssize_t store_battery_cycle(
+	struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t size)
+{
+	struct power_supply *psy = dev_get_drvdata(dev);
+	struct wt_chg *chg = power_supply_get_drvdata(psy);
+	int val;
+
+	if (kstrtoint(buf, 10, &val) == 0){
+		chg->batt_cycle = val;
+		wtchg_set_charge_work(chg);
+	}else if (sscanf(buf, "%10d\n", &val) == 1){
+		chg->batt_cycle = val;
+		wtchg_set_charge_work(chg);
+	}
+
+	return size;
+}
+
+static DEVICE_ATTR(battery_cycle, 0664, show_battery_cycle,store_battery_cycle);
+
+char str_batt_type[64] = {0};
+static ssize_t show_batt_type(struct device *dev,struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s\n", str_batt_type);
+}
+static ssize_t store_batt_type(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+{
+	int i = 0;
+	printk("[%s]\n", __func__);
+	if (buf != NULL && size != 0) {
+		pr_err("[%s] buf is %s\n", __func__, buf);
+		memset(str_batt_type, 0, 64);
+		for (i = 0; i < size; ++i) {
+			str_batt_type[i] = buf[i];
+		}
+		str_batt_type[i+1] = '\0';
+		pr_err("str_batt_type:%s\n", str_batt_type);
+	}
+
+	return size;
+}
+static DEVICE_ATTR(batt_type, 0664, show_batt_type, store_batt_type);
+//-P86801AA1-13521 gudi.wt,20231009, add Battery EU ECO design
+
+#ifdef CONFIG_AMERICA_VERSION
+static ssize_t show_charge_type(struct device *dev,struct device_attribute *attr, char *buf)
+{
+	struct power_supply *psy = dev_get_drvdata(dev);
+	struct wt_chg *chg = power_supply_get_drvdata(psy);
+
+	return sprintf(buf, "%s\n", (chg->main_chg_input_curr > 1000) ? "Fast" : "Trickle");
+}
+
+static DEVICE_ATTR(charge_type, 0664, show_charge_type, NULL);
+#endif
 #endif
 static int wtchg_init_batt_psy(struct wt_chg *chg)
 {
@@ -4126,10 +4486,19 @@ static int wtchg_init_batt_psy(struct wt_chg *chg)
 	}
 #ifdef CONFIG_QGKI_BUILD
 	ret = device_create_file(&(chg->batt_psy->dev), &dev_attr_store_mode);
+	//P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+	ret = device_create_file(&(chg->batt_psy->dev), &dev_attr_batt_soc_rechg);
+//+P86801AA1-13521 gudi.wt,20231009, add Battery EU ECO design
+	ret = device_create_file(&(chg->batt_psy->dev), &dev_attr_batt_temp);
+	ret = device_create_file(&(chg->batt_psy->dev), &dev_attr_battery_cycle);
+	ret = device_create_file(&(chg->batt_psy->dev), &dev_attr_batt_type);
+//-P86801AA1-13521 gudi.wt,20231009, add Battery EU ECO design
+#ifdef CONFIG_AMERICA_VERSION
+	ret = device_create_file(&(chg->batt_psy->dev), &dev_attr_charge_type);
+#endif
 #endif
 	return ret;
 }
-
 
 /************************
  * AC PSY REGISTRATION *
@@ -5374,7 +5743,12 @@ static int wt_chg_probe(struct platform_device *pdev)
 							"wtchg_iterm_wake");
 	wt_chg->wtchg_iterm_wake_source.disabled = 1;
 	//-bug825533, tankaikun@wt, add 20230216, add software control iterm
+	wt_chg->wtchg_off_charger_wake_source.source = wakeup_source_register(NULL,
+							"wtchg_off_charger_wake");
+	wt_chg->wtchg_off_charger_wake_source.disabled = 1;
 
+	//P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+	wt_chg->wt_batt_cv = BATT_NORMAL_CV;
 	//+bug761884, tankaikun@wt, add 20220730, add backlight notify
 #if defined(CONFIG_FB)
 	ret = backlight_register_fb(wt_chg);
@@ -5442,6 +5816,16 @@ static int wt_chg_probe(struct platform_device *pdev)
 		goto cleanup;
 	}
 
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	g_wt_chg = wt_chg;
+
+//+P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+#ifdef CONFIG_QGKI_BUILD
+	wt_chg->probe_begin_time = ktime_to_timespec(ktime_get_boottime());
+	wt_chg_probe_status = WT_PROBE_STATUS_START;
+#endif
+//-P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+
 	INIT_WORK(&wt_chg->wtchg_alarm_work, wtchg_alarm_work);
 	INIT_DELAYED_WORK(&wt_chg->wt_chg_work, wt_chg_main);
 #ifdef CONFIG_QGKI_BUILD
@@ -5477,6 +5861,7 @@ cleanup:
 #endif
 	wakeup_source_unregister(wt_chg->wtchg_ato_soc_wake_source.source);
 	wakeup_source_unregister(wt_chg->wtchg_iterm_wake_source.source);
+	wakeup_source_unregister(wt_chg->wtchg_off_charger_wake_source.source);
 
 	mutex_destroy(&wt_chg->resume_complete_lock);
 	//-bug761884, tankaikun@wt, add 20220831, fix iic read/write return -13 when system suspend
@@ -5497,7 +5882,7 @@ static int wt_chg_remove(struct platform_device *pdev)
 	wakeup_source_unregister(wt_chg->wtchg_ato_soc_wake_source.source);
 	wakeup_source_unregister(wt_chg->wtchg_alarm_wake_source.source);
 	wakeup_source_unregister(wt_chg->wtchg_iterm_wake_source.source);
-
+	wakeup_source_unregister(wt_chg->wtchg_off_charger_wake_source.source);
 	mutex_destroy(&wt_chg->resume_complete_lock);
 	//-bug761884, tankaikun@wt, add 20220831, fix iic read/write return -13 when system suspend
 
@@ -5600,4 +5985,4 @@ module_exit(wt_chg_exit);
 
 MODULE_AUTHOR("WingTech Inc.");
 MODULE_DESCRIPTION("battery driver");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");

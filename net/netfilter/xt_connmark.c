@@ -17,6 +17,7 @@
 
 // SEC_PRODUCT_FEATURE_KNOX_SUPPORT_VPN {
 #ifdef CONFIG_KNOX_NCM
+#include <linux/pid.h>
 #include <linux/types.h>
 #include <linux/tcp.h>
 #include <linux/ip.h>
@@ -37,48 +38,35 @@ MODULE_ALIAS("ip6t_connmark");
 #define META_MARK_BASE_LOWER 100
 #define META_MARK_BASE_UPPER 500
 
-struct knox_meta_param {
-    uid_t uid;
-    pid_t pid;
-};
-
-static unsigned int knoxvpn_uidpid(struct sk_buff *skb, u_int32_t newmark)
+static void knoxvpn_uidpid(struct sk_buff *skb, u_int32_t newmark)
 {
-	int szMetaData;
 	struct skb_shared_info *knox_shinfo = NULL;
 
-	szMetaData = sizeof(struct knox_meta_param);
 	if (skb != NULL) {
 		knox_shinfo = skb_shinfo(skb);
 	} else {
 		pr_err("KNOX: NULL SKB - no KNOX processing");
-		return -1;
+		return;
 	}
 
 	if( skb->sk == NULL) {
 		pr_err("KNOX: skb->sk value is null");
-		return -1;
+		return;
 	}
 
 	if( knox_shinfo == NULL) {
 		pr_err("KNOX: knox_shinfo is null");
-		return -1;
+		return;
 	}
 
 	if (newmark < META_MARK_BASE_LOWER || newmark > META_MARK_BASE_UPPER) {
 		pr_err("KNOX: The mark is out of range");
-		return -1;
-	} else if (SOCK_NPA_VENDOR_DATA_GET(skb->sk) != NULL) {
-		knox_shinfo->android_vendor_data1[0] = (u64)SOCK_NPA_VENDOR_DATA_GET(skb->sk)->knox_uid;
-		knox_shinfo->android_vendor_data1[1] = (u64)SOCK_NPA_VENDOR_DATA_GET(skb->sk)->knox_pid;
-		knox_shinfo->android_vendor_data1[2] = (u64)newmark;
+		return;
 	} else {
-		knox_shinfo->android_vendor_data1[0] = 0;
-		knox_shinfo->android_vendor_data1[1] = 0;
+		if ((current) && (current->cred)) knox_shinfo->android_vendor_data1[0] = (u64)current->cred->uid.val;
+		if (current) knox_shinfo->android_vendor_data1[1] = (u64)current->tgid;
 		knox_shinfo->android_vendor_data1[2] = (u64)newmark;
 	}
-
-	return 0;
 }
 #endif
 // SEC_PRODUCT_FEATURE_KNOX_SUPPORT_VPN }

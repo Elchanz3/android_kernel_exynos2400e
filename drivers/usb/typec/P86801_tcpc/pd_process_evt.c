@@ -48,7 +48,7 @@ static const char * const pd_ctrl_msg_name[] = {
 	"get_pps",
 	"get_cc",
 	"get_snk_cap_ex",
-	"ctrl17"
+	"ctrl17",
 	"get_rev",
 #endif	/* CONFIG_USB_PD_REV30 */
 };

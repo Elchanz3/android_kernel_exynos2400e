@@ -2107,8 +2107,8 @@ int cts_start_device_esdrecover(struct cts_device *cts_dev)
 
 int cts_stop_device_esdrecover(struct cts_device *cts_dev)
 {
-    struct chipone_ts_data *cts_data =
-        container_of(cts_dev, struct chipone_ts_data, cts_dev);
+//  struct chipone_ts_data *cts_data =
+//      container_of(cts_dev, struct chipone_ts_data, cts_dev);
     int ret;
 
     cts_info("Stop device...");
@@ -2131,7 +2131,7 @@ int cts_stop_device_esdrecover(struct cts_device *cts_dev)
 
     cts_dev->enabled = false;
 
-    flush_workqueue(cts_data->workqueue);
+//  flush_workqueue(cts_data->workqueue);
 
     ret = cts_plat_release_all_touch(cts_dev->pdata);
     if (ret) {
@@ -2456,7 +2456,9 @@ void cts_disable_esd_protection(struct chipone_ts_data *cts_data)
 
         cts_data->esd_enabled = false;
         cancel_delayed_work(&cts_data->esd_work);
-        flush_workqueue(cts_data->esd_workqueue);
+        //flush_workqueue(cts_data->esd_workqueue);
+        //cancel_delayed_work_sync(&cts_data->esd_work);
+        cts_info(" ESD work delayed ok");
     }
 }
 
@@ -2595,7 +2597,7 @@ void cts_enable_heartbeat_mechanism(struct chipone_ts_data *cts_data)
 }
 void cts_disable_heartbeat_mechanism(struct chipone_ts_data *cts_data)
 {
-    cancel_delayed_work_sync(&cts_data->heart_work);
+    cancel_delayed_work(&cts_data->heart_work);
 }
 #endif
 
@@ -2798,6 +2800,12 @@ static void fts_hardwareinfo_set(void)
                     ic_name, firmware_version_from_ic);
     }
 // -P86801AA1 peiyuexiang.wt,add,20230905,compatible XINXIAN
+// +P86801AA1 lihesong.wt,add,20230920,compatible dijin
+    if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")) {
+        snprintf(TP_name,HARDWARE_MAX_ITEM_LONGTH,"DIJIN,%s, FW:0x%04X",  \
+                    ic_name, firmware_version_from_ic);
+    }
+// -P86801AA1 lihesong.wt,add,20230920,compatible dijin
     cts_err("firmware_ver=%s\n", TP_name);
 }
 //-P86801AA1 peiyuexiang.wt 20230625, add, hardware_info

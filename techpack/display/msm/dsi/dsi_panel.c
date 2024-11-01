@@ -4,7 +4,6 @@
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
  */
 
-
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
@@ -67,6 +66,9 @@ char serialnum_temp20[] = "11111111111111111111";
 #endif
 //-,wangcong.wt,add,2023.8.28, add lcm_get_serialnum
 extern int esd_interval_time;
+#ifdef CONFIG_QGKI_BUILD
+extern bool is_shut_down;
+#endif
 
 static void dsi_dce_prepare_pps_header(char *buf, u32 pps_delay_ms)
 {
@@ -470,6 +472,7 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 		esd_interval_time = 0;
 		pr_info("esd_interval_time mdelay(65)\n");
 	}
+
 	pr_err("WT_LCD,dsi_panel_power_on OUT\n ");//+P86801AA1,liuyongliang.wt,add,2023.05.24, add debug log
 	goto exit;
 
@@ -510,7 +513,11 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 	if (gpio_is_valid(panel->reset_config.disp_en_gpio))
 		gpio_set_value(panel->reset_config.disp_en_gpio, 0);
 
+#ifdef CONFIG_QGKI_BUILD
+	if ((himax_gestrue_status || fts_gestrue_status || chipone_gestrue_status)&&(!is_shut_down)) {
+#else
 	if (himax_gestrue_status || fts_gestrue_status || chipone_gestrue_status) {
+#endif
 		pr_err("WT_LCD,dsi_panel_power_off not set reset low\n ");
 	} else {
 		if (gpio_is_valid(panel->reset_config.reset_gpio) &&
@@ -562,7 +569,11 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 			DSI_WARN("set dir for panel test gpio failed rc=%d\n", rc);
 	}
 // +P86801AA1 peiyuexiang.wt,add,20230511,add double_click
+#ifdef CONFIG_QGKI_BUILD
+	if ((himax_gestrue_status || fts_gestrue_status || chipone_gestrue_status)&&(!is_shut_down)) {
+#else
 	if (himax_gestrue_status || fts_gestrue_status || chipone_gestrue_status) {
+#endif
 		pr_err("[TP_LOG]dsi_panel_power_off gestrue_status = 1\n ");
 	} else {
 		pr_err("[TP_LOG]dsi_panel_power_off gestrue_status = 0\n ");
@@ -625,6 +636,13 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 			DSI_ERR("[%s] failed to enable vregs, rc=%d\n", panel->name, rc);
 	}
 // -P86801AA1 peiyuexiang.wt,add,20230511,add double_click
+	if(esd_interval_time) {
+		mdelay(130);
+		pr_info("esd_interval_time mdelay(130)\n");
+	}
+#ifdef CONFIG_QGKI_BUILD
+	is_shut_down = false;
+#endif
 	pr_err("WT_LCD,dsi_panel_power_off OUT\n ");//+P86801AA1,liuyongliang.wt,add,2023.05.24, add debug log
 	return rc;
 }

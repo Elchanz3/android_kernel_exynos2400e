@@ -246,8 +246,9 @@ static const char *const tcpc_timer_name[] = {
 #define DECL_TCPC_TIMEOUT_RANGE(enum, min, max)	\
 	TIMEOUT_RANGE(min, max)
 
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 #define PD_TIMER_SENDER_RESPONSE_TIMEOUT_20 TIMEOUT_VAL(26)
-#define PD_TIMER_SENDER_RESPONSE_TIMEOUT_30 TIMEOUT_VAL(28)
+#define PD_TIMER_SENDER_RESPONSE_TIMEOUT_30 TIMEOUT_VAL(29)
 
 static const uint32_t tcpc_timer_timeout[PD_TIMER_NR] = {
 #ifdef CONFIG_USB_POWER_DELIVERY
@@ -257,7 +258,8 @@ DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_HARD_RESET_COMPLETE, 4, 5),
 DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_NO_RESPONSE, 4500, 5500),
 DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_PS_HARD_RESET, 25, 35),
 DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_PS_SOURCE_OFF, 750, 920),
-DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_PS_SOURCE_ON, 390, 480),
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+DECL_TCPC_TIMEOUT(PD_TIMER_PS_SOURCE_ON, 410),
 
 DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_PS_TRANSITION, 450, 550),
 DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_SENDER_RESPONSE, 24, 30),
@@ -280,9 +282,10 @@ DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_SOURCE_TRANSITION, 25, 35),
 DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_SRC_RECOVER, 660, 1000),
 
 #ifdef CONFIG_USB_PD_REV30
-DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_CK_NOT_SUPPORTED, 40, 50),
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+DECL_TCPC_TIMEOUT(PD_TIMER_CK_NOT_SUPPORTED, 40),
 #ifdef CONFIG_USB_PD_REV30_COLLISION_AVOID
-DECL_TCPC_TIMEOUT_RANGE(PD_TIMER_SINK_TX, 16, 20),
+DECL_TCPC_TIMEOUT(PD_TIMER_SINK_TX, 18),	/* 16 ~ 20 */
 #endif	/* CONFIG_USB_PD_REV30_COLLISION_AVOID */
 #ifdef CONFIG_USB_PD_REV30_PPS_SOURCE
 DECL_TCPC_TIMEOUT(PD_TIMER_SOURCE_PPS_TIMEOUT, 14000),
@@ -358,7 +361,8 @@ DECL_TCPC_TIMEOUT_RANGE(TYPEC_TIMER_PDDEBOUNCE, 10, 10),
 DECL_TCPC_TIMEOUT_RANGE(TYPEC_TIMER_APPLE_CC_OPEN, 200, 200),
 #endif /* CONFIG_COMPATIBLE_APPLE_TA */
 DECL_TCPC_TIMEOUT_RANGE(TYPEC_TIMER_TRYCCDEBOUNCE, 10, 20),
-DECL_TCPC_TIMEOUT_RANGE(TYPEC_TIMER_SRCDISCONNECT, 0, 20),
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+DECL_TCPC_TIMEOUT(TYPEC_TIMER_SRCDISCONNECT, 1),
 DECL_TCPC_TIMEOUT(TYPEC_TIMER_DRP_SRC_TOGGLE, 60),
 #ifdef CONFIG_TYPEC_CAP_NORP_SRC
 DECL_TCPC_TIMEOUT(TYPEC_TIMER_NORP_SRC, 300),
@@ -372,6 +376,11 @@ static inline void on_pe_timer_timeout(
 		struct tcpc_device *tcpc, uint32_t timer_id)
 {
 	struct pd_event pd_event = {0};
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#ifdef CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT
+	int timeout = -1;
+#endif /* CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT */
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 
 	pd_event.event_type = PD_EVT_TIMER_MSG;
 	pd_event.msg = timer_id;
@@ -428,7 +437,28 @@ static inline void on_pe_timer_timeout(
 		TCPC_INFO("pe_idle tout\n");
 		pd_put_pe_event(&tcpc->pd_port, PD_PE_IDLE);
 		break;
-
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#ifdef CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT
+	case PD_TIMER_SENDER_RESPONSE:
+		if (!tcpc->alert_done.done) {
+			/* alert thread is handling, but not sure is TXRX event
+			just for not block TXRX event ASAP */
+			TCPC_INFO("alert_pending\n");
+			timeout =
+			wait_for_completion_interruptible_timeout(&tcpc->alert_done,
+								  msecs_to_jiffies(3));
+			TCPC_INFO("timeout = %d\n", timeout);
+			/* if get rx_event, no need to put SENDER_RESPONSE event */
+			if (timeout > 0 && tcpc->is_rx_event)
+				break;
+		}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,4,0))
+		fallthrough;
+#else
+		/* pass through */
+#endif
+#endif /* CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT */
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	default:
 		pd_put_event(tcpc, &pd_event, false);
 		break;

@@ -29,7 +29,7 @@
 
 #define IDLE 0 //远离
 #define PROXACTIVE 1 //接近
-#define EXIT_ANFR_LP (-10000)
+#define EXIT_ANFR_LP (-8000)
 
 //寄存器列表
 #define RW_00_GLOBAL_CTRL0                   0x00
@@ -85,7 +85,7 @@
 #define RW_38_RAW_BL_RD_CFG                  0x38
 #define RW_39_INTERRUPT_CFG                  0x39
 #define RW_3A_INTERRUPT_CFG1                 0x3a
-#define RW_3B_CALI_DIFF_CFG                  0x05
+#define RW_3B_CALI_DIFF_CFG                  0x3b
 #define RW_3C_DITHER_CFG                     0x3c
 #define RW_40_ANALOG_MEM0_WRDATA_7_0         0x40
 #define RW_41_ANALOG_MEM0_WRDATA_15_8        0x41
@@ -318,7 +318,7 @@ static struct hx9023s_addr_val_pair hx9023s_reg_init_list[] = {
 
     {RW_38_RAW_BL_RD_CFG,              0xF0},
     {RW_39_INTERRUPT_CFG,              0xFF},
-    {RW_3B_CALI_DIFF_CFG,              0x07},
+    {RW_3B_CALI_DIFF_CFG,              0x04},
     {RW_6C_PROX_INT_HIGH_CFG,          0x01},
     {RW_6D_PROX_INT_LOW_CFG,           0x01},
 

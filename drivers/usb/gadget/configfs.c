@@ -1707,6 +1707,12 @@ static void configfs_composite_disconnect(struct usb_gadget *gadget)
 	spin_unlock_irqrestore(&gi->spinlock, flags);
 }
 
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#if 0//def CONFIG_QGKI_BUILD
+extern void wtchg_turn_on_hiz(void);
+extern void wtchg_turn_off_hiz(void);
+#endif
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 static void configfs_composite_suspend(struct usb_gadget *gadget)
 {
 	struct usb_composite_dev *cdev;
@@ -1727,6 +1733,11 @@ static void configfs_composite_suspend(struct usb_gadget *gadget)
 
 	composite_suspend(gadget);
 	spin_unlock_irqrestore(&gi->spinlock, flags);
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	#if 0 //def CONFIG_QGKI_BUILD
+	wtchg_turn_on_hiz();
+	#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 }
 
 static void configfs_composite_resume(struct usb_gadget *gadget)
@@ -1749,6 +1760,11 @@ static void configfs_composite_resume(struct usb_gadget *gadget)
 
 	composite_resume(gadget);
 	spin_unlock_irqrestore(&gi->spinlock, flags);
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	#if 0 //def CONFIG_QGKI_BUILD
+	wtchg_turn_off_hiz();
+	#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 }
 
 static const struct usb_gadget_driver configfs_driver_template = {

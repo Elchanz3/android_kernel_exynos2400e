@@ -26,6 +26,9 @@
 #include "wcd-mbhc-legacy.h"
 #include "wcd-mbhc-adc.h"
 #include <asoc/wcd-mbhc-v2-api.h>
+#ifdef CONFIG_EARJACK
+#include <linux/audio.h>
+#endif
 //+P86801AA1,peiyuexiang.wt,modify,2023/07/06,add tp earjack_mode
 #ifdef CONFIG_QGKI_BUILD
 #include <linux/tp_notifier.h>
@@ -44,6 +47,9 @@ extern bool chipone_earjack_mode_status;
 
 struct mutex hphl_pa_lock;
 struct mutex hphr_pa_lock;
+#ifdef CONFIG_EARJACK
+static struct audiodevice earjack;
+#endif
 
 void wcd_mbhc_jack_report(struct wcd_mbhc *mbhc,
 			  struct snd_soc_jack *jack, int status, int mask)
@@ -2122,7 +2128,11 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 		       mbhc->intr_ids->hph_right_ocp);
 		goto err_hphr_ocp_irq;
 	}
-
+	/*add /sys/class/audio/earjack/state*/
+#ifdef CONFIG_EARJACK
+	earjack.jack = &mbhc->headset_jack;
+	register_audio_earjack(&earjack);
+#endif
 	mbhc->deinit_in_progress = false;
 	pr_debug("%s: leave ret %d\n", __func__, ret);
 	return ret;
@@ -2157,6 +2167,11 @@ EXPORT_SYMBOL(wcd_mbhc_init);
 void wcd_mbhc_deinit(struct wcd_mbhc *mbhc)
 {
 	struct snd_soc_component *component = mbhc->component;
+
+	/*add /sys/class/audio/earjack/state*/
+#ifdef CONFIG_EARJACK
+	unregister_audio_earjack(&earjack);
+#endif
 
 	mbhc->mbhc_cb->free_irq(component, mbhc->intr_ids->mbhc_sw_intr, mbhc);
 	mbhc->mbhc_cb->free_irq(component, mbhc->intr_ids->mbhc_btn_press_intr,

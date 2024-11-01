@@ -577,6 +577,14 @@ int ipc_log_extract(void *ctxt, char *buff, int size)
 	if (size < MAX_MSG_DECODED_SIZE)
 		return -EINVAL;
 
+//P240130-00986,wanxi.wt,MOD,20240201,solve crash happens when reading /sys/debug/ipc_logging/rmnet_ctl/log
+    if (ilctxt->magic != IPC_LOG_CONTEXT_MAGIC_NUM) {
+        pr_err("%s: invalid magic\n",
+                __func__);
+        return -EINVAL;
+    }
+//P240130-00986,wanxi.wt,MOD,20240201,solve crash happens when reading /sys/debug/ipc_logging/rmnet_ctl/log
+
 	dctxt.output_format = OUTPUT_DEBUGFS;
 	dctxt.buff = buff;
 	dctxt.size = size;

@@ -671,6 +671,14 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 			break;
 		}
 
+		if ((usage->hid & 0xf0) == 0xa0) {	/* SystemControl */
+			switch (usage->hid & 0xf) {
+			case 0x9: map_key_clear(KEY_MICMUTE); break;
+			default: goto ignore;
+			}
+			break;
+		}
+
 		if ((usage->hid & 0xf0) == 0xb0) {	/* SC - Display */
 			switch (usage->hid & 0xf) {
 			case 0x05: map_key_clear(KEY_SWITCHVIDEOMODE); break;
@@ -1697,7 +1705,10 @@ static struct hid_input *hidinput_allocate(struct hid_device *hid,
 	    hid->maxapplication > 1) {
 		switch (application) {
 		case HID_GD_KEYBOARD:
-			suffix = "Keyboard(EF-DX210)";
+			suffix = "Keyboard";
+			if (hid->vendor == I2C_VENDOR_ID_KBD && hid->product == I2C_PRODUCT_ID_KBD) {
+				suffix = "Book Cover Keyboard Slim (EF-DX211)";
+			}
 			break;
 		case HID_GD_KEYPAD:
 			suffix = "Keypad";

@@ -68,7 +68,7 @@ enum {
 #define MAX_INT_COUNT   20
 //static int32_t enable_data[hx9036_CH_NUM] = {1};
 #define PDATA_GET(index)  hx9036_pdata.ch##index##_backgrand_cap
-static int cali_test_index = 1;
+//static int cali_test_index = 1;
 #endif
 static uint16_t hx9036_threshold_near_num[] =
 {
@@ -539,7 +539,7 @@ static void hx9036_read_offset_dac(void)
               data_offset_dac[4], data_offset_dac[5], data_offset_dac[6], data_offset_dac[7]);
 }
 
-static void hx9036_manual_offset_calibration(uint8_t ch_id)//手动校准所有通道
+static void hx9036_manual_offset_calibration(void)//手动校准所有通道
 {
     int ret = -1;
     uint8_t buf[1] = {0};
@@ -550,7 +550,7 @@ static void hx9036_manual_offset_calibration(uint8_t ch_id)//手动校准所有�
         PRINT_ERR("hx9036_read failed\n");
     }
     
-    buf[0] |= (1 << ch_id);
+    buf[0] |= 0xFF;
     
     ret = hx9036_write(PAGE0_57_OFFSET_CALI_CTRL1, buf, 1);
     if(0 != ret) {
@@ -840,7 +840,7 @@ static void hx9036_input_report_abs(void)
             hx9036_ch_last_state[ii] = hx9036_ch_near_state[ii];
         }
         PRINT_INF("SAR hx9036_pdata.interrupt_count=%d\n",hx9036_pdata.interrupt_count);
-        if (hx9036_pdata.sar_first_boot) {
+       /* if (hx9036_pdata.sar_first_boot) {
            if (hx9036_pdata.interrupt_count >= 5 && hx9036_pdata.interrupt_count < 15) {
                 PRINT_INF("hx9036_ch_near_state[0] = %d", hx9036_ch_near_state[0]);
                 if (hx9036_ch_near_state[2] == IDLE && cali_test_index == 1) {
@@ -853,7 +853,7 @@ static void hx9036_input_report_abs(void)
                     PRINT_INF("hx9036:interrupt_count:15, wifi sar cali");
                     hx9036_manual_offset_calibration(2);
                     PRINT_INF("hx9036:interrupt_count:%d", hx9036_pdata.interrupt_count);
-           }
+           }*/
             if (hx9036_pdata.sar_first_boot && (hx9036_pdata.interrupt_count < MAX_INT_COUNT) &&   \
                       (data_lp[0] >= EXIT_ANFR_LP) && (data_lp[1] >= EXIT_ANFR_LP) && (data_lp[2] >= EXIT_ANFR_LP)) {
                 PRINT_INF("force %s State=Near\n", hx9036_channels[ii].name);
@@ -867,7 +867,7 @@ static void hx9036_input_report_abs(void)
             }
             PRINT_INF("exit force input near mode!!!\n");
             hx9036_pdata.sar_first_boot = false;
-        }
+      // }
 #endif
         touch_state = hx9036_ch_near_state[ii];
 //+P86801AA1-1797, ludandan.wt,ADD, 2023/05/20, add sar power reduction control switch
@@ -1303,13 +1303,13 @@ static ssize_t hx9036_manual_offset_calibration_store(struct class *class, struc
         PRINT_INF("you are enter the calibration test mode, all channels will be calibrated\n");
         for(ii = 0; ii < HX9036_CH_NUM; ii++) {
             if ((hx9036_pdata.channel_used_flag >> ii) & 0x1) {
-                hx9036_manual_offset_calibration(ii);
+                 hx9036_manual_offset_calibration();
             }
         }
         return count;
     }
     if (ch_id < HX9036_CH_NUM)
-        hx9036_manual_offset_calibration(ch_id);
+         hx9036_manual_offset_calibration();
     else
         PRINT_ERR(" \"echo ch_id > calibrate\" to do a manual calibrate(ch_id is a channel num (0~%d)\n", HX9036_CH_NUM);
     return count;
@@ -2035,11 +2035,11 @@ static ssize_t user_test_store(struct class *class,
         hx9036_pdata.sar_first_boot = false;
         PRINT_INF("hx9036_pdata.sar_first_boot:%d", hx9036_pdata.sar_first_boot);
         PRINT_INF("hx9036:user_test mode, exit force input near mode!!!\n");
-        for( ii = 0; ii < HX9036_CH_NUM; ii++) {
+       // for( ii = 0; ii < HX9036_CH_NUM; ii++) {
             if ((hx9036_pdata.channel_used_flag >> ii) & 0x1) {
                 //mdelay(20);	
-                hx9036_manual_offset_calibration(ii);
-            }
+                hx9036_manual_offset_calibration();
+           // }
         }
     }
     return count;

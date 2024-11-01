@@ -5,6 +5,7 @@
 #include <linux/iio/iio.h>
 #include <dt-bindings/iio/qti_power_supply_iio.h>
 #include <linux/iio/consumer.h>
+#include <linux/module.h>
 
 struct cw2217_iio_channels {
 	const char *datasheet_name;
@@ -68,5 +69,7 @@ static const struct cw2217_iio_channels cw2217_iio_psy_channels[] = {
 	CW2217_CHAN_ENERGY("soc_decimal_rate", PSY_IIO_BMS_SOC_DECIMAL_RATE)
 	CW2217_CHAN_ENERGY("battery_id", PSY_IIO_BATTERY_ID)
 };
+
+MODULE_LICENSE("GPL v2");
 
 #endif

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/err.h>
@@ -295,7 +295,7 @@ static int check_client(int client_id, int proc, int request)
 	int i = 0, rc;
 	int found = DHMS_MEM_CLIENT_INVALID;
 
-	for (i = 0; i < MAX_CLIENTS; i++) {
+	for (i = 0; i < num_clients; i++) {
 		if (memblock[i].client_id == client_id &&
 				memblock[i].peripheral == proc) {
 			found = i;
@@ -690,7 +690,7 @@ static void handle_alloc_generic_req(struct qmi_handle *handle,
 		return;
 	}
 
-	for (i = 0; i < MAX_CLIENTS; i++) {
+	for (i = 0; i < num_clients; i++) {
 		if (memsh_child[i] == NULL) {
 			dev_err(memsh_drv->dev,
 				"memshare_alloc: client not found, requested client: %d, proc_id: %d\n",
@@ -710,8 +710,12 @@ static void handle_alloc_generic_req(struct qmi_handle *handle,
 		}
 	}
 
-	if (!memblock[index].allotted) {
-		if (memblock[index].guard_band && alloc_req->num_bytes > 0)
+	if (!memblock[index].allotted && alloc_req->num_bytes > 0) {
+
+		if (alloc_req->num_bytes > memblock[index].init_size)
+			alloc_req->num_bytes = memblock[index].init_size;
+
+		if (memblock[index].guard_band)
 			size = alloc_req->num_bytes + MEMSHARE_GUARD_BYTES;
 		else
 			size = alloc_req->num_bytes;
@@ -816,7 +820,7 @@ static void handle_free_generic_req(struct qmi_handle *handle,
 		flag = 1;
 	}
 
-	for (i = 0; i < MAX_CLIENTS; i++) {
+	for (i = 0; i < num_clients; i++) {
 		if (memsh_child[i]->client_id == free_req->client_id) {
 			client_node = memsh_child[i];
 			dev_info(memsh_drv->dev,

@@ -179,7 +179,7 @@ extern char Lcm_name_tp[255];
 /* used for 102d overlay */
 /*#define HX_CODE_OVERLAY*/
 /*Independent threads run the notification chain notification function resume*/
-/*#define HX_CONTAINER_SPEED_UP*/
+#define HX_CONTAINER_SPEED_UP  //P86801AA1 wanwen2.wt,add,20230927,Modify the tp wake-up method
 /*#define HX_OPT_HW_CRC*/
 #ifdef HX_OPT_HW_CRC
 struct zf_opt_crc;
@@ -343,7 +343,7 @@ enum cell_type {
 };
 
 #if defined(HX_SMART_WAKEUP)
-#define HX_KEY_DOUBLE_CLICK KEY_POWER
+#define HX_KEY_DOUBLE_CLICK KEY_WAKEUP
 #define HX_KEY_UP           KEY_UP
 #define HX_KEY_DOWN         KEY_DOWN
 #define HX_KEY_LEFT         KEY_LEFT

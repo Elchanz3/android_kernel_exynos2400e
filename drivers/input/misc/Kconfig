@@ -923,6 +923,14 @@ config INPUT_HX9036
 	  Say Y to enable the SAR detection application, if N here not to use the
           this SAR sensor
 
+config INPUT_HX9036_NA
+	tristate "HX9036_SAR_sensor"
+	depends on I2C
+	default n
+	help
+	  Say Y to enable the SAR detection application, if N here not to use the
+          this SAR sensor
+
 config INPUT_HX9023S
 	tristate "HX9023S_SAR_sensor"
 	depends on I2C
@@ -938,6 +946,15 @@ config INPUT_SX937X
     help
       Say Y to enable the SAR detection application, if N here not to use the
           this SAR sensor
+
+config INPUT_SX937X_NA
+    tristate "SX937X_NA_SAR_sensor"
+    depends on I2C
+    default n
+    help
+      Say Y to enable the SAR detection application, if N here not to use the
+          this SAR sensor
+
 config INPUT_SX932X
    tristate "SX932X_SAR_sensor"
    depends on I2C

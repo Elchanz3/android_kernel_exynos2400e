@@ -3,9 +3,13 @@
 #define __LINUX_GPIO_AFC_H__
 
 #include <linux/kernel.h>
+#include <linux/module.h>
 
 #define AFC_COMM_CNT 3
-#define AFC_RETRY_MAX 20
+//+P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+#define AFC_RETRY_MAX_EARLY 20
+#define AFC_RETRY_MAX_LATER 3
+//-P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
 #define VBUS_RETRY_MAX 5
 #define UI 160
 #define WAIT_SPING_COUNT 5
@@ -47,6 +51,16 @@ enum {
 	SET_9V	= 9,
 };
 
+//+P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+#ifdef CONFIG_QGKI_BUILD
+enum wt_probe_status {
+  WT_PROBE_STATUS_START = 0,
+  WT_PROBE_STATUS_TIMEOUT,
+  WT_PROBE_STATUS_UNKNOW,
+};
+#endif
+//-P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+
 struct afc_dev {
 	struct platform_device *pdev;
 	struct device *dev;
@@ -57,12 +71,16 @@ struct afc_dev {
 	struct pinctrl *pinctrl;
 	struct pinctrl_state *pin_active;
 	struct pinctrl_state *pin_suspend;
-	struct work_struct afc_set_voltage_work;
+	//P86801AA2-3236, liwei.wt, modify, 20240401, get vbus from pmic iio
+	//struct work_struct afc_set_voltage_work;
+	struct delayed_work afc_set_voltage_work;
 	struct iio_dev *indio_dev;
 	struct iio_chan_spec *iio_chan;
 	struct iio_channel *int_iio_chans;
 	struct iio_channel	**gq_ext_iio_chans;
 	struct iio_channel	**wtchg_ext_iio_chans;
+	//P86801AA2-3236, liwei.wt, add, 20240401, get vbus from pmic iio
+	struct iio_channel	**pmic_ext_iio_chans;
 
 	int irq;
 	int afc_switch_gpio;
@@ -84,5 +102,12 @@ struct afc_dev {
 
 };
 
+//+P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+#ifdef CONFIG_QGKI_BUILD
+extern int wt_chg_probe_status;
+#endif
+//-P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+
+MODULE_LICENSE("GPL v2");
 
 #endif

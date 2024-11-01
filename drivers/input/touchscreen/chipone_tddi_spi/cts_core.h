@@ -504,6 +504,12 @@ struct chipone_ts_data {
     struct proc_dir_entry *procfs_entry;
 #endif
 
+//+P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
+#ifdef CONFIG_PM
+	bool dev_pm_suspend;
+	struct completion dev_pm_resume_completion;
+#endif
+//-P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
     void *oem_data;
 
     bool force_reflash;

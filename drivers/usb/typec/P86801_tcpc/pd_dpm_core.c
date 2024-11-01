@@ -186,6 +186,42 @@ int pd_dpm_send_source_caps(struct pd_port *pd_port)
 		src_cap1->nr, src_cap1->pdos);
 }
 
+//+ReqP86801AA2-3327, liwei19.wt, add, 20240318, iphone smart switch need 5V 0A.
+#ifdef CONFIG_QGKI_BUILD
+void pd_dpm_send_source_caps_0a(bool val)
+{
+	static struct tcpc_device *tcpc;
+	//P240510-05491, liwei19.wt, modify, 20240514, Can't connect to iphone using OTG
+	struct pd_port *pd_port;
+	uint32_t curr;
+
+	tcpc = tcpc_dev_get_by_name("type_c_port0");
+	if(!tcpc){
+		printk("pd_dpm_send_source_caps_0a fail\n");
+		return;
+	}
+
+	printk("pd_dpm_send_source_caps_0a success\n");
+
+	//+P240510-05491, liwei19.wt, modify, 20240514, Can't connect to iphone using OTG
+	pd_port = &tcpc->pd_port;
+
+	//If connecting iphones via otg, the pe_state_curr is not PE_SRC_READY.
+	if (pd_port->pe_state_curr == PE_SRC_READY) {
+		if(val)
+			curr = 0x00019000;
+		else
+			curr = 0x00019032;
+		pd_send_sop_data_msg(&tcpc->pd_port, PD_DATA_SOURCE_CAP,1,&curr);
+	} else {
+		printk("pd is not ready\n");
+	}
+	//-P240510-05491, liwei19.wt, modify, 20240514, Can't connect to iphone using OTG
+	return;
+}
+#endif
+//-ReqP86801AA2-3327, liwei19.wt, add, 20240318, iphone smart switch need 5V 0A.
+
 void pd_dpm_inform_cable_id(struct pd_port *pd_port, bool src_startup)
 {
 #ifdef CONFIG_USB_PD_REV30

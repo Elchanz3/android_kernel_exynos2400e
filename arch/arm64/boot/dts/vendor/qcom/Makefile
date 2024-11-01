@@ -542,6 +542,12 @@ WT_FEATURE_ENABLE_DTC += -DWT_BOOTLOADER_LOG
 endif
 #-P86801AA1-3805,xieshuaishuai.wt, add, 20230724, add wt bootloader log feature.
 
+#+ P86801EA1-1206 gudi1.wt,add.20231007,modify quiet thermal
+ifeq ($(CONFIG_AMERICA_VERSION),y)
+CHARGER_AMERICA := -DAMERICA_VERSION
+endif
+#- P86801EA1-1206 gudi1.wt,add.20231007,modify quiet thermal
+
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 	dtbo-$(CONFIG_ARCH_DIREWOLF) += direwolf-ivi-rumi-overlay.dtbo \
 		direwolf-ivi-adp-star-overlay.dtbo \

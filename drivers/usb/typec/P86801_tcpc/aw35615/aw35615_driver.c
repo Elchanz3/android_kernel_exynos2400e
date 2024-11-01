@@ -35,6 +35,13 @@
 
 #define AW35615_DRIVER_VERSION		"V1.5.0"
 
+//+ReqP86801AA2-3327, liwei19.wt, add, 20240520, iphone smart switch need 5V 0A
+#ifdef CONFIG_QGKI_BUILD
+bool is_aw35615 = false;
+EXPORT_SYMBOL(is_aw35615);
+#endif
+//-ReqP86801AA2-3327, liwei19.wt, add, 20240520, iphone smart switch need 5V 0A
+
 /******************************************************************************
  * Driver functions
  ******************************************************************************/
@@ -188,6 +195,42 @@ static int aw35615_retransmit(struct tcpc_device *tcpc)
 	AW_LOG("enter\n");
 	return 0;
 }
+
+//+ReqP86801AA2-3327, liwei19.wt, add, 20240520, iphone smart switch need 5V 0A
+#ifdef CONFIG_QGKI_BUILD
+void aw_retry_source_cap(int cur)
+{
+	struct aw35615_chip *chip = aw35615_GetChip();
+	int bak_cur;
+
+	chip->port.USBPDTxFlag = AW_TRUE;
+	chip->port.PDTransmitHeader.word = chip->port.src_cap_header.word;
+	bak_cur = chip->port.src_caps[0].FPDOSupply.MaxCurrent;
+	chip->port.src_caps[0].FPDOSupply.MaxCurrent = cur / 10;
+	pr_err("send source cap, cur=%d\n", cur);
+	if ((!chip->queued) && (chip->port.PolicyState == peSourceReady)) {
+		chip->queued = AW_TRUE;
+		queue_work(chip->highpri_wq, &chip->sm_worker);
+		usleep_range(4000, 5000);
+		pr_err("queue_work --> send source cap\n");
+		do {
+			if ((chip->port.PolicyState == peSourceSendSoftReset) ||
+					(chip->port.PolicyState == peSourceSendHardReset) ||
+					(chip->port.PolicyState == peSourceTransitionDefault) ||
+					(chip->port.PolicyState == peDisabled)) {
+				AW_LOG("source cap fail\n");
+				return;
+			}
+			usleep_range(500, 1000);
+		} while ((chip->port.PolicyState != peSourceReady) || (chip->queued == AW_TRUE));
+		return;
+	}
+
+	chip->port.src_caps[0].FPDOSupply.MaxCurrent = bak_cur;
+	return;
+}
+#endif
+//-ReqP86801AA2-3327, liwei19.wt, add, 20240520, iphone smart switch need 5V 0A
 
 static struct tcpc_ops aw35615_tcpc_ops = {
 	.init = aw35615_tcpc_init,
@@ -352,6 +395,12 @@ static int aw35615_probe(struct i2c_client *client, const struct i2c_device_id *
 
 	/* delay init */
 	INIT_DELAYED_WORK(&chip->init_delay_work, aw35615_init_delay_work);
+
+//+ReqP86801AA2-3327, liwei19.wt, add, 20240520, iphone smart switch need 5V 0A
+#ifdef CONFIG_QGKI_BUILD
+	is_aw35615 = true;
+#endif
+//-ReqP86801AA2-3327, liwei19.wt, add, 20240520, iphone smart switch need 5V 0A
 
 	AW_LOG(" AWINIC Driver loaded successfully!\n");
 

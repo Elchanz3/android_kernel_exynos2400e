@@ -1435,7 +1435,12 @@ static void smtc_process_touch_status(Self self)
     u16 ch0_result = 0;
     u16 ch1_result = 0;
     u16 ch2_result = 0;
+    if (self->interrupt_count <= MAX_INT_COUNT) {
+            self->interrupt_count++;
+            pr_info("sx937x interrupt_count is %d;", self->interrupt_count);
+        }
 #endif
+
 	smtc_i2c_read(self, REG_PROX_STATUS, &prox_state);
 	SMTC_LOG_INF("prox_state= 0x%X", prox_state);
     smtc_log_raw_data(self);
@@ -1449,10 +1454,6 @@ static void smtc_process_touch_status(Self self)
         input = phase->sx937x_input_dev;
         need_sync = false;
 #if SAR_IN_FRANCE
-        if (self->interrupt_count <= MAX_INT_COUNT) {
-            self->interrupt_count++;
-            pr_info("sx937x interrupt_count is %d;", self->interrupt_count);
-        }
 
         if (self->sar_first_boot) {
             smtc_i2c_read(self, SX937X_OFFSET_PH0,&uData);

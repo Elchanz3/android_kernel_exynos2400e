@@ -309,7 +309,7 @@ static int stop_charger_detect(struct cts_charger_detect_data *cd_data)
 
 #ifdef CFG_CTS_CHARGER_DETECT_PSY_POLL
     if (cd_data->type == CTS_CHGR_DET_TYPE_POLL_PSP) {
-        if (!cancel_delayed_work_sync(&cd_data->psp_poll_work))
+        if (!cancel_delayed_work(&cd_data->psp_poll_work))
             cts_warn("Cancel poll psp work while NOT pending");
 
         cd_data->running = false;

@@ -36,6 +36,8 @@
 #ifndef _TABLE_H_
 #define _TABLE_H_
 
+#include <linux/module.h>
+
 /****************************************************************************
 * Struct section
 *  add struct #define here if any
@@ -190,5 +192,7 @@ extern int32_t	XAxisElement_third[XAxis_THIRD];
 extern int32_t	YAxisElement_third[YAxis_THIRD];
 extern int32_t	ZAxisElement_third[ZAxis_THIRD];
 extern int32_t	RCtable_third[YAxis_SECOND*ZAxis_THIRD][XAxis_THIRD];
-#endif
 
+MODULE_LICENSE("GPL v2");
+
+#endif

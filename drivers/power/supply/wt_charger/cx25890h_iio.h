@@ -10,6 +10,7 @@
 #include <linux/iio/iio.h>
 #include <dt-bindings/iio/qti_power_supply_iio.h>
 #include <linux/iio/consumer.h>
+#include <linux/module.h>
 
 struct cx25890h_iio_channels {
 	const char *datasheet_name;
@@ -109,6 +110,8 @@ static const char * const qg_ext_iio_chan_name[] = {
 	[BATT_QG_CURRENT_NOW] = "qg_current_now",
 	[BATT_QG_VOLTAGE_NOW] = "qg_voltage_now",
 };
+
+MODULE_LICENSE("GPL v2");
 
 #endif
 

@@ -511,7 +511,12 @@ struct tcpc_device {
 	bool vbus_present;
 	u8 irq_enabled:1;
 	u8 pd_inited_flag:1;
-
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#ifdef CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT
+ 	struct completion alert_done;
+	bool is_rx_event;
+#endif /* CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT */
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	/* TypeC Shield Protection */
 #ifdef CONFIG_WATER_DETECTION
 	int usbid_calib;

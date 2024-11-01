@@ -16,20 +16,4 @@ config I2C_HID
 	  This support is also available as a module.  If so, the module
 	  will be called i2c-hid.
 
-if I2C_HID
-
-menu "Special I2C HID drivers"
-	depends on I2C_HID
-
-config POGOPIN_HID
-	tristate "POGOPIN_HID support for kbd connect"
-	depends on I2C_HID
-	---help---
-	Support for keyboard connected.
-	If keyboard connect, setup HW buffers and start the device.
-
-endmenu
-
-endif # HID
-
 endmenu

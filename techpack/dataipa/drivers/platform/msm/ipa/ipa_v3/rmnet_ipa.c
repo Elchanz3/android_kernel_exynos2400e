@@ -73,6 +73,10 @@ enum ipa_ap_ingress_ep_enum {
 	  rmnet_ipa3_ctx->wwan_priv->net : NULL)
 
 #define IPA_WWAN_CONS_DESC_FIFO_SZ 256
+#ifdef CONFIG_QGKI_BUILD
+bool is_shut_down = false;
+EXPORT_SYMBOL_GPL(is_shut_down);
+#endif
 
 static void rmnet_ipa_free_msg(void *buff, u32 len, u32 type);
 static void rmnet_ipa_get_stats_and_update(void);
@@ -3010,7 +3014,9 @@ static int ipa3_lcl_mdm_ssr_notifier_cb(struct notifier_block *this,
 
 		if (ipa3_ctx_get_flag(IPA_ENDP_DELAY_WA_EN))
 			ipa3_client_prod_post_shutdown_cleanup();
-
+		#ifdef CONFIG_QGKI_BUILD
+		is_shut_down = true;
+		#endif
 		IPAWANINFO("IPA AFTER_SHUTDOWN handling is complete\n");
 		break;
 #if IS_ENABLED(CONFIG_DEEPSLEEP)
@@ -3037,6 +3043,10 @@ static int ipa3_lcl_mdm_ssr_notifier_cb(struct notifier_block *this,
 		/* hold a proxy vote for the modem. */
 		ipa3_proxy_clk_vote(atomic_read(&rmnet_ipa3_ctx->is_ssr));
 		ipa3_reset_freeze_vote();
+		#ifdef CONFIG_QGKI_BUILD
+		is_shut_down = false;
+		IPAWANINFO("IPA AFTER_POWERUP is_shut_down reset\n");
+		#endif
 		IPAWANINFO("IPA BEFORE_POWERUP handling is complete\n");
 		break;
 #if IS_ENABLED(CONFIG_DEEPSLEEP)
@@ -3048,6 +3058,10 @@ static int ipa3_lcl_mdm_ssr_notifier_cb(struct notifier_block *this,
 		       atomic_read(&rmnet_ipa3_ctx->is_ssr))
 			platform_driver_register(&rmnet_ipa_driver);
 		ipa3_odl_pipe_open();
+		#ifdef CONFIG_QGKI_BUILD
+		is_shut_down = false;
+		IPAWANINFO("IPA AFTER_POWERUP is_shut_down reset\n");
+		#endif
 		IPAWANINFO("IPA AFTER_POWERUP handling is complete\n");
 		break;
 	default:

@@ -87,11 +87,19 @@
 #define CW_LOW_VOLTAGE_REF      2500
 #define CW_LOW_VOLTAGE          3000
 #define CW_LOW_VOLTAGE_STEP     10
-#define CW_UI_FULL_999          88
-#define CW_UI_FULL_699          91
-#define CW_UI_FULL_399          92
-#define CW_UI_FULL_299          94
-#define CW_UI_FULL_0            98
+//+P86801EA2-300 gudi.wt battery protect function
+#define CW_UI_FULL_999_UPM6918          82
+#define CW_UI_FULL_699_UPM6918          85
+#define CW_UI_FULL_399_UPM6918          88
+#define CW_UI_FULL_299_UPM6918          93
+#define CW_UI_FULL_0_UPM6918            94
+
+#define CW_UI_FULL_999_CX25890          86
+#define CW_UI_FULL_699_CX25890          89
+#define CW_UI_FULL_399_CX25890          91
+#define CW_UI_FULL_299_CX25890          94
+#define CW_UI_FULL_0_CX25890            95
+//+P86801EA2-300 gudi.wt battery protect function
 
 #define CW_ERROR_VOL			0
 #define CW_ERROR_TEMP			-400
@@ -378,12 +386,17 @@ static void cw221x_get_battery_id (struct cw_battery *cw_bat)
 	int	ret, batt_id_uv = 0;
 	int batt_id_temp;
 
+#ifdef CONFIG_QGKI_BUILD
 	cw_bat->batt_id_vol = iio_channel_get(cw_bat->dev, "batt_id");
 	if (!cw_bat->batt_id_vol) {
 		pr_err("get cw_get_battery_id fail\n");
 		return;
 	}
-
+#else	
+	pr_err("cw221x_get_battery_id for google gki\n");
+	cw_bat->batt_id = 0;
+	return;
+#endif
 	ret = iio_read_channel_processed(cw_bat->batt_id_vol, &batt_id_uv);
 	if (ret < 0) {
 		dev_err(cw_bat->dev,"read batt_id_vol channel fail, ret=%d\n", ret);
@@ -446,6 +459,14 @@ static int cw_get_temp(struct cw_battery *cw_bat);
  * enough for the application. The low byte(0x05) provides more accurate fractional part of the SOC and its
  * LSB is (1/256) %.
  */
+
+//+P86801EA2-300 gudi.wt battery protect function
+#ifdef CONFIG_QGKI_BUILD
+extern bool sgm41542_if_been_used(void);
+extern bool cx25890h_if_been_used(void);
+#endif
+//-P86801EA2-300 gudi.wt battery protect function
+
 static int cw_get_capacity(struct cw_battery *cw_bat)
 {
 	int ret;
@@ -464,40 +485,64 @@ static int cw_get_capacity(struct cw_battery *cw_bat)
 	soc_h = reg_val[0];
 	soc_l = reg_val[1];
 
+//+P86801EA2-300 gudi.wt battery protect function
 #ifdef CONFIG_QGKI_BUILD
-	if (cw_bat->cycle > 999)
-		ui_100 = CW_UI_FULL_999;
+	if(sgm41542_if_been_used()){
+		if (cw_bat->cycle > 999)
+		ui_100 = CW_UI_FULL_999_UPM6918;
 	else if (cw_bat->cycle > 699)
-		ui_100 = CW_UI_FULL_699;
+		ui_100 = CW_UI_FULL_699_UPM6918;
 	else if (cw_bat->cycle > 399)
-		ui_100 = CW_UI_FULL_399;
+		ui_100 = CW_UI_FULL_399_UPM6918;
 	else if (cw_bat->cycle > 299)
-		ui_100 = CW_UI_FULL_299;
+		ui_100 = CW_UI_FULL_299_UPM6918;
 	else
-		ui_100 = CW_UI_FULL_0;
-
+		ui_100 = CW_UI_FULL_0_UPM6918;
+	}else if(cx25890h_if_been_used()){
+		if (cw_bat->cycle > 999)
+		ui_100 = CW_UI_FULL_999_CX25890;
+	else if (cw_bat->cycle > 699)
+		ui_100 = CW_UI_FULL_699_CX25890;
+	else if (cw_bat->cycle > 399)
+		ui_100 = CW_UI_FULL_399_CX25890;
+	else if (cw_bat->cycle > 299)
+		ui_100 = CW_UI_FULL_299_CX25890;
+	else
+		ui_100 = CW_UI_FULL_0_CX25890;
+	}
 	if (cw_bat->temp <= 120)
 		ui_100 -= 2;
 #endif
+//-P86801EA2-300 gudi.wt battery protect function
 
 	ui_soc = ((soc_h * 256 + soc_l) * 100)/ (ui_100 * 256);
 	remainder = (((soc_h * 256 + soc_l) * 100 * 100) / (ui_100 * 256)) % 100;
 
-	if (ui_soc >= 100){
-		cw_printk("CW2015[%d]: UI_SOC = %d larger 100!!!!\n", __LINE__, ui_soc);
-		ui_soc = 100;
-	}
-
 	cw_bat->ic_soc_h = soc_h;
 	cw_bat->ic_soc_l = soc_l;
 	if(ui_soc >= 1){
-		cw_bat->ui_soc = ui_soc;
+		//+P231016-06147  gudi.wt,soc after limit still rising
+		/* case 1 : aviod swing */	//EXTB P210227-01167,taohuayi.wt 20211228 [70,30] ->[90,10].
+		if((ui_soc >= cw_bat->ui_soc - 1) && (ui_soc <= cw_bat->ui_soc + 1)
+						&& (remainder > 70 || remainder < 30) ){
+			ui_soc = cw_bat->ui_soc;
+//+P231104-03175,gudi.wt，20231106,fix soc larger 100 can not show 100
+		}else if(ui_soc >= 100){
+			cw_printk("CW2015[%d]: UI_SOC = %d larger 100!!!!\n", __LINE__, ui_soc);
+			ui_soc = 100;
+			cw_bat->ui_soc = ui_soc;
+		}else{
+			cw_bat->ui_soc = ui_soc;
+		}
+//-P231104-03175,gudi.wt，20231106,fix soc larger 100 can not show 100
+		//-P231016-06147  gudi.wt,soc after limit still rising
 	}else if(ui_soc < 1){
-            if(cw_bat->voltage < 3400){
+		//P86801EA2-845 gudi.wt,soc bug when pd charger in low power mode
+            if(cw_bat->voltage < 3320){
                   count++;
                   if(count > 10)
                     cw_bat->ui_soc = ui_soc;
-                  else 
+                  else
                     cw_bat->ui_soc = ui_soc+1;
    	    }else{
                   cw_bat->ui_soc = ui_soc+1;
@@ -699,13 +744,16 @@ static int cw_get_soh(struct cw_battery *cw_bat)
 #define CHARGE_FULL_SOC 100
 #define DEADSOC_COEFFICIENT 100
 #define CHARGE_STATE_CHANGE_SOC 92
-#define CHARGE_CC_CURRENT_THRESHOLD 1500
+//P231020-00869 gudi.wt,20231023,fix charge full time
+#define CHARGE_CC_CURRENT_THRESHOLD 1700
 #define MAGIC_CHARGE_CC_CURRENT 2000
 #define MAGIC_CHARGE_END_CV_CURRENT 1300
-
-#define DESIGNED_CAPACITY_85 347820 //mAmin
-#define MAGIC_CHARGE_CC_CURRENT_85 2400
-#define CHARGE_FULL_SOC_85 833
+//+P240307-04695, liwei19.wt, modify, 20240329, New requirements for one ui 6.1 charging protection.
+#define DESIGNED_CAPACITY_80 327360 //mAmin
+#define MAGIC_CHARGE_CC_CURRENT_80 2400
+#define CHARGE_FULL_SOC_80 782
+#define CHARGE_SOC_80 80
+//-P240307-04695, liwei19.wt, modify, 20240329, New requirements for one ui 6.1 charging protection.
 
 static int cw_get_time_to_charge_full(struct cw_battery *cw_bat)
 {
@@ -738,14 +786,24 @@ static int cw_get_time_to_charge_full(struct cw_battery *cw_bat)
 		return 0; //no chargering
 	}
 
+//+P240307-04695, liwei19.wt, add, 20240329, New requirements for one ui 6.1 charging protection.
+#ifdef CONFIG_QGKI_BUILD
+		if(cap_val.intval != POWER_SUPPLY_CAPACITY_100) {
+			if (cw_bat->ui_soc == CHARGE_SOC_80) {
+				cw_bat->time_to_full = 0;
+				return 0;
+			}
+		}
+#endif
+//-P240307-04695, liwei19.wt, add, 20240329, New requirements for one ui 6.1 charging protection.
+
 	deadsoc_coefficient = DEADSOC_COEFFICIENT;
 	//for Paul change, You can add condition to change deadsoc_coefficient
 #ifdef CONFIG_QGKI_BUILD
-	if(cap_val.intval == 85){
-		discharge_capacity = DESIGNED_CAPACITY_85 * soh / 100;
-		discharge_capacity = discharge_capacity * (CHARGE_FULL_SOC_85/10*256 - (ic_soc_h *256 + ic_soc_l)) / 100 / 256;
-}
-	else{
+	if(cap_val.intval != POWER_SUPPLY_CAPACITY_100){
+		discharge_capacity = DESIGNED_CAPACITY_80 * soh / 100;
+		discharge_capacity = discharge_capacity * (CHARGE_FULL_SOC_80/10*256 - (ic_soc_h *256 + ic_soc_l)) / 100 / 256;
+	} else{
 		discharge_capacity = DESIGNED_CAPACITY * soh / 100;
 		discharge_capacity = discharge_capacity * (CHARGE_FULL_SOC*256 - (ic_soc_h *256 + ic_soc_l)) / 100 / 256;
 	}
@@ -756,14 +814,16 @@ static int cw_get_time_to_charge_full(struct cw_battery *cw_bat)
 	discharge_capacity = discharge_capacity * deadsoc_coefficient / 100;
 	if(ic_current > CHARGE_CC_CURRENT_THRESHOLD && ic_soc_h < CHARGE_STATE_CHANGE_SOC)
 #ifdef CONFIG_QGKI_BUILD
-	if(cap_val.intval == 85)
-		magic_current = MAGIC_CHARGE_CC_CURRENT_85;
+	if(cap_val.intval != POWER_SUPPLY_CAPACITY_100)
+		magic_current = MAGIC_CHARGE_CC_CURRENT_80;
 	else
 		magic_current = MAGIC_CHARGE_CC_CURRENT;
 #else
 		magic_current = MAGIC_CHARGE_CC_CURRENT;
 #endif
-	else if(ic_current < MAGIC_CHARGE_END_CV_CURRENT && ic_current > 10)
+//P231020-00869 gudi.wt modify time_to_charge_full for UI
+
+	else if(ic_current <= CHARGE_CC_CURRENT_THRESHOLD && ic_current > 10)
 		magic_current = MAGIC_CHARGE_END_CV_CURRENT;
 	else
 		magic_current = cw_bat->cw_current;
@@ -860,7 +920,7 @@ static int cw_update_data(struct cw_battery *cw_bat)
 static int cw_init_data(struct cw_battery *cw_bat)
 {
 	int ret = 0;
-	
+
 	ret = cw_get_fw_version(cw_bat);
 	if(ret != 0){
 		return ret;
@@ -868,13 +928,15 @@ static int cw_init_data(struct cw_battery *cw_bat)
 	cw_bat->cycle_user_control = 0xFFFF;
 	ret += cw_get_chip_id(cw_bat);
 	ret += cw_get_voltage(cw_bat);
+	//+P86801AA2-3091  liwei.wt, modify, 2024/1/11, ui_soc decreases when soc read from fuelgague increased
+	ret += cw_get_temp(cw_bat);
+	//-P86801AA2-3091  liwei.wt, modify, 2024/1/11, ui_soc decreases when soc read from fuelgague increased
 	ret += cw_get_cycle_count(cw_bat);
 	ret += cw_get_capacity(cw_bat);
-	ret += cw_get_temp(cw_bat);
 	ret += cw_get_current(cw_bat);
 	ret += cw_get_soh(cw_bat);
-	
-	cw_printk("chip_id = %d vol = %d  cur = %ld cap = %d temp = %d  fw_version = %d\n", 
+
+	cw_printk("chip_id = %d vol = %d  cur = %ld cap = %d temp = %d  fw_version = %d\n",
 		cw_bat->chip_id, cw_bat->voltage, cw_bat->cw_current, cw_bat->ui_soc, cw_bat->temp, cw_bat->fw_version);
 
 	return ret;
@@ -1603,4 +1665,4 @@ module_exit(cw221X_exit);
 
 MODULE_AUTHOR("Cellwise FAE");
 MODULE_DESCRIPTION("CW221X FGADC Device Driver V0.1");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");

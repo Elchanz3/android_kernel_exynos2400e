@@ -241,6 +241,13 @@ static int tcpci_alert_recv_msg(struct tcpc_device *tcpc)
 
 	pd_msg->frame_type = type;
 	pd_put_pd_msg_event(tcpc, pd_msg);
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#ifdef CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT
+	tcpc->is_rx_event = true;
+	complete(&tcpc->alert_done);
+#endif /* CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT */
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+
 out:
 	tcpci_alert_status_clear(tcpc, TCPC_REG_ALERT_RX_MASK);
 

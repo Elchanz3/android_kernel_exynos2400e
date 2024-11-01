@@ -9,6 +9,7 @@
 #include <linux/qti_power_supply.h>
 #include <linux/iio/iio.h>
 #include <dt-bindings/iio/qti_power_supply_iio.h>
+#include <linux/module.h>
 
 enum wtchg_iio_type {
 	MAIN_CHG,
@@ -183,5 +184,7 @@ struct quick_charge {
 	enum power_supply_type adap_type;
 	enum power_supply_quick_charge_type adap_cap;
 };
+
+MODULE_LICENSE("GPL v2");
 
 #endif

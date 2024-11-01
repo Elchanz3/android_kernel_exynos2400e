@@ -190,7 +190,11 @@ static inline bool pd_process_hw_msg(
 /*
  * [BLOCK] Porcess Timer MSG
  */
-
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#if 0 //def CONFIG_QGKI_BUILD
+extern void wtchg_turn_on_hiz(void);
+#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 static inline bool pd_process_timer_msg(
 	struct pd_port *pd_port, struct pd_event *pd_event)
 {
@@ -205,6 +209,11 @@ static inline bool pd_process_timer_msg(
 			PE_PRS_SNK_HARD_RESET);
 
 	case PD_TIMER_SOURCE_TRANSITION:
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#if 0 //def CONFIG_QGKI_BUILD
+		wtchg_turn_on_hiz();
+#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 		pd_dpm_prs_enable_power_source(pd_port, false);
 		return false;
 

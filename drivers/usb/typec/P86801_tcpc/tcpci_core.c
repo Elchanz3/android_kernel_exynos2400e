@@ -21,7 +21,8 @@
 #include <linux/list.h>
 #include <linux/power_supply.h>
 #include <linux/workqueue.h>
-
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#include <linux/completion.h>
 #include "inc/tcpci.h"
 #include "inc/tcpci_typec.h"
 
@@ -368,7 +369,12 @@ struct tcpc_device *tcpc_device_register(struct device *parent,
 	tcpc->evt_wq = alloc_ordered_workqueue("%s", 0, tcpc_desc->name);
 	for (i = 0; i < TCP_NOTIFY_IDX_NR; i++)
 		srcu_init_notifier_head(&tcpc->evt_nh[i]);
-
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#ifdef CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT
+	init_completion(&tcpc->alert_done);
+	tcpc->is_rx_event = false;
+#endif /* CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT */
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	mutex_init(&tcpc->access_lock);
 	mutex_init(&tcpc->typec_lock);
 	mutex_init(&tcpc->timer_lock);

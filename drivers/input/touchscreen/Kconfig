@@ -1355,5 +1355,6 @@ source "drivers/input/touchscreen/focaltech_touch_spi/Kconfig"
 source "drivers/input/touchscreen/chipone_tddi_spi/Kconfig"
 
 source "drivers/input/touchscreen/himax_hx83102j_spi/Kconfig"
+source "drivers/input/touchscreen/jdchipset/Kconfig"
 
 endif

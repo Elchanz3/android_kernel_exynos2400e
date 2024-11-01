@@ -800,8 +800,8 @@ static void touchProcess(psx93XX_t this)
                     continue;
                 }
                 this->sar_first_boot = false;
-                write_register(this, SX932x_PROX_CTRL2_REG, 0x9B);
-                write_register(this, SX932x_PROX_CTRL3_REG, 0x21);
+                write_register(this, SX932x_PROX_CTRL2_REG, 0x20);
+                write_register(this, SX932x_PROX_CTRL3_REG, 0x20);
                 pr_info("sx9328: exit force input near mode!!!\n");
             }
 #endif
@@ -1213,7 +1213,7 @@ static int sx932x_probe(struct i2c_client *client, const struct i2c_device_id *i
 #if SAR_IN_FRANCE
     this->sar_first_boot = true;
     this->user_test  = 0;
-    write_register(this, SX932x_PROX_CTRL2_REG, 0x9B);
+    write_register(this, SX932x_PROX_CTRL2_REG, 0x03);
     write_register(this, SX932x_PROX_CTRL3_REG, 0x21);
     INIT_DELAYED_WORK(&this->delay_get_offset, enable_get_offset);
 #endif

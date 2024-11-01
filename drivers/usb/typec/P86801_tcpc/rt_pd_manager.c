@@ -102,7 +102,11 @@ struct rt_pd_manager_data {
 #ifdef CONFIG_WT_QGKI
 extern int charger_notifier_call_chain(unsigned long val, void *v);
 #endif
-
+//+P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
+#ifdef CONFIG_QGKI_BUILD
+extern bool batt_hv_disable;
+#endif
+//-P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
 static struct rt_pd_manager_data *g_rpmd = NULL;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
@@ -423,8 +427,10 @@ static void usb_dwork_handler(struct work_struct *work)
 	union power_supply_propval val = {.intval = 0};
 //+ReqP86801AA1-3595, liyiying.wt, add, 20230801, Configure SEC_BAT_CURRENT_EVENT_HV_DISABLE
 #ifdef CONFIG_QGKI_BUILD
-	int ret_hv = 0;
-	union power_supply_propval val_hv = {.intval = 0};
+//+P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
+	//int ret_hv = 0;
+	//union power_supply_propval val_hv = {.intval = 0};
+//-P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
 #endif
 //-ReqP86801AA1-3595, liyiying.wt, add, 20230801, Configure SEC_BAT_CURRENT_EVENT_HV_DISABLE
 #if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
@@ -469,10 +475,12 @@ static void usb_dwork_handler(struct work_struct *work)
 				    ret, val.intval);
 //+ReqP86801AA1-3595, liyiying.wt, add, 20230801, Configure SEC_BAT_CURRENT_EVENT_HV_DISABLE
 #ifdef CONFIG_QGKI_BUILD
-		if (val.intval == POWER_SUPPLY_TYPE_USB_PD) {
-			dev_info(rpmd->dev, "%s enter RT1711_HV_DIS_DETECT --\n", __func__);
-			ret_hv = smblib_get_prop(rpmd, RT1711_HV_DIS_DETECT, &val_hv);
-		}
+//+P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
+		//if (val.intval == POWER_SUPPLY_TYPE_USB_PD) {
+			//dev_info(rpmd->dev, "%s enter RT1711_HV_DIS_DETECT --\n", __func__);
+			//ret_hv = smblib_get_prop(rpmd, RT1711_HV_DIS_DETECT, &val_hv);
+		//}
+//-P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
 #endif
 //-ReqP86801AA1-3595, liyiying.wt, add, 20230801, Configure SEC_BAT_CURRENT_EVENT_HV_DISABLE
 #if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
@@ -621,6 +629,13 @@ static void otgrecover_dwork_handler(struct work_struct *work)
 }
 #endif
 
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#if 0 //def CONFIG_QGKI_BUILD
+extern void wtchg_turn_on_hiz(void);
+extern void wtchg_turn_off_hiz(void);
+#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+
 static int pd_tcp_notifier_call(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
@@ -632,6 +647,8 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 	enum typec_pwr_opmode opmode = TYPEC_PWR_MODE_USB;
 	uint32_t partner_vdos[VDO_MAX_NR];
 	union power_supply_propval val = {.intval = 0};
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+//	union power_supply_propval val1 = {.intval = 0};
 	int rp_level=0;
 #ifdef WT_COMPILE_FACTORY_VERSION
 	int i;
@@ -1052,7 +1069,6 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 			val.intval = ret & DPM_FLAGS_PARTNER_USB_SUSPEND ? 1 : 0;
 			smblib_set_prop(rpmd, RT1711_PD_USB_SUSPEND_SUPPORTED, &val);
-			//smblib_set_prop(rpmd, RT1711_CHARGING_ENABLED, &val); //usb suspend for usb if
 #else
 			val.intval = ret & DPM_FLAGS_PARTNER_USB_SUSPEND ?
 				     1 : 0;
@@ -1069,6 +1085,14 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 				     POWER_SUPPLY_PD_ACTIVE;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 			smblib_set_prop(rpmd, RT1711_PD_ACTIVE, &val);
+//+P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
+#ifdef CONFIG_QGKI_BUILD
+			if (batt_hv_disable && (val.intval != 0)) {
+				tcpm_set_remote_power_cap(rpmd->tcpc, 5000, 2000);
+				dev_info(rpmd->dev, "%s: set pd vbus 5V, ibus 2A\n", __func__);
+			}
+#endif
+//-P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
 #else
 			smblib_set_prop(rpmd, POWER_SUPPLY_PROP_PD_ACTIVE,
 					&val);
@@ -1527,7 +1551,9 @@ static int rt_cclogic_set_prop(struct power_supply *psy,
 			if (pval >= 7500) {
 				tcpm_set_remote_power_cap(rpmd->tcpc, 9000, 1670);
 			} else if (pval < 7500) {
-				tcpm_set_remote_power_cap(rpmd->tcpc, 5000, 3000);
+//+P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
+				tcpm_set_remote_power_cap(rpmd->tcpc, 5000, 2000);
+//-P86801AA2-3318 When selecting to exit fast charging on the UI interface, the device cannot exit fast charging.
 			}
 			pr_err("%s tcpm_set_remote_power_cap : %d --\n", __func__, pval);
 			break;

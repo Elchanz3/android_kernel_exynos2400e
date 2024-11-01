@@ -497,14 +497,15 @@ static void cts_plat_handle_irq(struct cts_platform_data *pdata)
         cts_err("Device handle IRQ failed %d", ret);
     cts_unlock_device(pdata->cts_dev);
 }
-
+//+P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
+extern struct chipone_ts_data *g_cts_data;
 static irqreturn_t cts_plat_irq_handler(int irq, void *dev_id)
 {
     struct cts_platform_data *pdata;
 #ifndef CONFIG_GENERIC_HARDIRQS
     struct chipone_ts_data *cts_data;
 #endif
-
+	int ret;
     cts_dbg("IRQ handler");
 
     pdata = (struct cts_platform_data *)dev_id;
@@ -512,6 +513,16 @@ static irqreturn_t cts_plat_irq_handler(int irq, void *dev_id)
         cts_err("IRQ handler with NULL dev_id");
         return IRQ_NONE;
     }
+#ifdef CONFIG_PM
+	if (g_cts_data->dev_pm_suspend) {
+		ret = wait_for_completion_timeout(&g_cts_data->dev_pm_resume_completion, msecs_to_jiffies(700));
+			if (!ret) {
+					cts_err("system(bus) can't finished resuming procedure, skip it\n");
+							return IRQ_HANDLED;
+			}
+	}
+#endif
+//-P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
 #ifdef CONFIG_GENERIC_HARDIRQS
     cts_plat_handle_irq(pdata);
 #else
@@ -1149,7 +1160,7 @@ int cts_plat_process_touch_msg(struct cts_platform_data *pdata,
                     &pdata->touch_event_timeout_work, msecs_to_jiffies(100));
         }
     } else {
-        cancel_delayed_work_sync(&pdata->touch_event_timeout_work);
+        cancel_delayed_work(&pdata->touch_event_timeout_work);
     }
 #endif
 

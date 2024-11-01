@@ -120,7 +120,7 @@ static int stop_earjack_detect(struct cts_earjack_detect_data *ed_data)
 
     cts_info("Stop detect");
 
-    if (!cancel_delayed_work_sync(&ed_data->poll_work)) {
+    if (!cancel_delayed_work(&ed_data->poll_work)) {
         cts_warn("Cancel poll work while NOT pending");
     }
     ed_data->running = false;

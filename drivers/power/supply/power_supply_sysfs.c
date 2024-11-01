@@ -132,6 +132,18 @@ static const char * const POWER_SUPPLY_SCOPE_TEXT[] = {
 	[POWER_SUPPLY_SCOPE_DEVICE]	= "Device",
 };
 
+//+P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+#ifdef CONFIG_QGKI_BUILD
+static const char * const POWER_SUPPLY_BATT_FULL_CAPACITY_TEXT[] = {
+	[POWER_SUPPLY_CAPACITY_100]	= "100",
+	[POWER_SUPPLY_CAPACITY_80_HIGHSOC]	= "80 HIGHSOC",
+	[POWER_SUPPLY_CAPACITY_80_SLEEP]	= "80 SLEEP",
+	[POWER_SUPPLY_CAPACITY_80_OPTION]	= "80 OPTION",
+	[POWER_SUPPLY_CAPACITY_80_OFFCHARGING]	= "80",
+};
+#endif
+//-P240307-04695, liwei19.wt, add, 20240319, New requirements for one ui 6.1 charging protection.
+
 static struct power_supply_attr power_supply_attrs[] = {
 	/* Properties of type `int' */
 	POWER_SUPPLY_ENUM_ATTR(STATUS),
@@ -222,7 +234,7 @@ static struct power_supply_attr power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(BATT_SLATE_MODE),
 	POWER_SUPPLY_ATTR(BATT_CURRENT_EVENT),
 	POWER_SUPPLY_ATTR(BATT_CURRENT_UA_NOW),
-	POWER_SUPPLY_ATTR(BATT_FULL_CAPACITY),
+	POWER_SUPPLY_ENUM_ATTR(BATT_FULL_CAPACITY),
 	POWER_SUPPLY_ATTR(BATT_MISC_EVENT),
 	POWER_SUPPLY_ATTR(HV_DISABLE),
 #endif
@@ -292,7 +304,8 @@ static ssize_t power_supply_show_property(struct device *dev,
 
 		if (ret < 0) {
 			if (ret == -ENODATA)
-				dev_dbg(dev, "driver has no data for `%s' property\n",
+				dev_dbg_ratelimited(dev,
+					"driver has no data for `%s' property\n",
 					attr->attr.name);
 			else if (ret != -ENODEV && ret != -EAGAIN)
 				dev_err_ratelimited(dev,

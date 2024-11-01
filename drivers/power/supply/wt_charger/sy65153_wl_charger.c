@@ -1242,7 +1242,7 @@ static struct i2c_driver sy65153_charger_driver = {
 module_i2c_driver(sy65153_charger_driver);
 
 MODULE_DESCRIPTION("SY65153 Wireless Charger Driver");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Wingtech");
 MODULE_ALIAS("i2c:sy_wls_charger");
 

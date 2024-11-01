@@ -1901,15 +1901,17 @@ static ssize_t gesture_en_store(struct device *dev,
 
     if (buf[0] == 'Y' || buf[0] == 'y' || buf[0] == '1')
         enable = 1;
-
+//+P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
     if (enable) {
         chipone_gestrue_status = 1;
         cts_enable_gesture_wakeup(cts_dev);
+	cts_dev->rtdata.gesture_d_tap_enabled = 1;
     } else {
         chipone_gestrue_status = 0;
         cts_disable_gesture_wakeup(cts_dev);
+	cts_dev->rtdata.gesture_d_tap_enabled = 0;
     }
-
+//+P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
     return count;
 }
 

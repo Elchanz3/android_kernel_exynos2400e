@@ -30,12 +30,12 @@
 #include <linux/version.h>
 #include <uapi/linux/sched/types.h>
 #include <linux/sched/clock.h>
-
 //#include <linux/hardware_info.h>
 #include "inc/pd_dbg_info.h"
 #include "inc/tcpci.h"
 #include "inc/rt1711h.h"
-
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#include <linux/completion.h>
 #ifdef CONFIG_RT_REGMAP
 #include "inc/rt-regmap.h"
 #endif /* CONFIG_RT_REGMAP */
@@ -47,12 +47,14 @@
 /* #define DEBUG_GPIO	66 */
 
 #define RT1711H_DRV_VERSION	"2.0.6_G"
-
-#define RT1711H_IRQ_WAKE_TIME	(500) /* ms */
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#define RT1711H_IRQ_WAKE_TIME	(1000) /* ms */
 #define RT1711H_SOFTWARE_TRIM_EN	1
 #define RT1711H_REG_PASSWORD				(0xB0)
 #define RT1711H_REG_PD_OPT_ZTX_SEL			(0xD0)
-
+#define RT1711H_CPU_BOUND_EN		1
+#define RT1711H_CPU_BE_BOUND		0
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 #define HUSB311_DID	0x0000
 #define RT1711H_VID	    	0x315c
 #define RT1711H_PID	    	0x8851
@@ -110,9 +112,12 @@ RT_REG_DECL(TCPC_V10_REG_TRANSMIT, 1, RT_VOLATILE, {});
 //RT_REG_DECL(TCPC_V10_REG_TX_BYTE_CNT, 1, RT_NORMAL_WR_ONCE, {});
 //RT_REG_DECL(TCPC_V10_REG_TX_HDR, 2, RT_NORMAL_WR_ONCE, {});
 //RT_REG_DECL(TCPC_V10_REG_TX_DATA, 28, RT_NORMAL_WR_ONCE, {});
-RT_REG_DECL(TCPC_V10_REG_TX_BYTE_CNT, 1, RT_VOLATILE, {});
-RT_REG_DECL(TCPC_V10_REG_TX_HDR, 2, RT_VOLATILE, {});
-RT_REG_DECL(TCPC_V10_REG_TX_DATA, 28, RT_VOLATILE, {});
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+//RT_REG_DECL(TCPC_V10_REG_TX_BYTE_CNT, 1, RT_VOLATILE, {});
+//RT_REG_DECL(TCPC_V10_REG_TX_HDR, 2, RT_VOLATILE, {});
+//RT_REG_DECL(TCPC_V10_REG_TX_DATA, 28, RT_VOLATILE, {});
+RT_REG_DECL(TCPC_V10_REG_TX_BYTE_CNT, 31, RT_VOLATILE, {});
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 RT_REG_DECL(RT1711H_REG_CONFIG_GPIO0, 1, RT_NORMAL_WR_ONCE, {});
 RT_REG_DECL(RT1711H_REG_PHY_CTRL1, 1, RT_NORMAL_WR_ONCE, {});
 RT_REG_DECL(RT1711H_REG_CLK_CTRL2, 1, RT_NORMAL_WR_ONCE, {});
@@ -163,8 +168,10 @@ static const rt_register_map_t rt1711_chip_regmap[] = {
 	RT_REG(TCPC_V10_REG_RX_DATA),
 	RT_REG(TCPC_V10_REG_TRANSMIT),
 	RT_REG(TCPC_V10_REG_TX_BYTE_CNT),
-	RT_REG(TCPC_V10_REG_TX_HDR),
-	RT_REG(TCPC_V10_REG_TX_DATA),
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+//	RT_REG(TCPC_V10_REG_TX_HDR),
+//	RT_REG(TCPC_V10_REG_TX_DATA),
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	RT_REG(RT1711H_REG_CONFIG_GPIO0),
 	RT_REG(RT1711H_REG_PHY_CTRL1),
 	RT_REG(RT1711H_REG_CLK_CTRL2),
@@ -590,7 +597,11 @@ static void rt1711_irq_work_handler(struct kthread_work *work)
 
 	/* make sure I2C bus had resumed */
 	down(&chip->suspend_lock);
-	//reinit_completion(&chip->tcpc->alert_done);
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#ifdef CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT
+ 	reinit_completion(&chip->tcpc->alert_done);
+#endif /* CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT */
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	tcpci_lock_typec(chip->tcpc);
 
 #ifdef DEBUG_GPIO
@@ -603,9 +614,16 @@ static void rt1711_irq_work_handler(struct kthread_work *work)
 			break;
 		gpio_val = gpio_get_value(chip->irq_gpio);
 	} while (gpio_val == 0);
-
 	tcpci_unlock_typec(chip->tcpc);
-	//complete(&chip->tcpc->alert_done);
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#ifdef CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT
+	if (!completion_done(&chip->tcpc->alert_done)) {
+		chip->tcpc->is_rx_event = false;
+		complete(&chip->tcpc->alert_done);
+	}
+#endif /* CONFIG_USB_PD_CHECK_RX_PENDING_IF_SRTOUT */
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+
 	up(&chip->suspend_lock);
 
 #ifdef DEBUG_GPIO
@@ -616,9 +634,11 @@ static void rt1711_irq_work_handler(struct kthread_work *work)
 static irqreturn_t rt1711_intr_handler(int irq, void *data)
 {
 	struct rt1711_chip *chip = data;
-
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	//struct sched_param sched_priority = {.sched_priority = -1};
 	pm_wakeup_event(chip->dev, RT1711H_IRQ_WAKE_TIME);
-
+	//sched_setscheduler_nocheck(current, SCHED_FIFO, &sched_priority);
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 #ifdef DEBUG_GPIO
 	gpio_set_value(DEBUG_GPIO, 0);
 #endif
@@ -669,8 +689,22 @@ static int rt1711_init_alert(struct tcpc_device *tcpc)
 	dev_info(chip->dev, "%s IRQ number = %d\n", __func__, chip->irq);
 
 	kthread_init_worker(&chip->irq_worker);
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#ifdef CONFIG_QGKI_BUILD
+#if RT1711H_CPU_BOUND_EN
+	chip->irq_worker_task = kthread_create_on_cpu(kthread_worker_fn,
+		&chip->irq_worker, RT1711H_CPU_BE_BOUND, chip->tcpc_desc->name);
+	if (!IS_ERR(chip->irq_worker_task))
+		wake_up_process(chip->irq_worker_task);
+#else
 	chip->irq_worker_task = kthread_run(kthread_worker_fn,
 			&chip->irq_worker, "%s", chip->tcpc_desc->name);
+#endif //RT1711H_CPU_BOUND_EN
+#else
+	chip->irq_worker_task = kthread_run(kthread_worker_fn,
+		&chip->irq_worker, "%s", chip->tcpc_desc->name);
+#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	if (IS_ERR(chip->irq_worker_task)) {
 		pr_err("Error: Could not create tcpc task\n");
 		return -EINVAL;
@@ -726,6 +760,8 @@ int rt1711_alert_status_clear(struct tcpc_device *tcpc, uint32_t mask)
 static int rt1711h_set_clock_gating(struct tcpc_device *tcpc, bool en)
 {
 	int ret = 0;
+/* P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	struct rt1711_chip *chip = tcpc_get_dev_data(tcpc);
 
 #ifdef CONFIG_TCPC_CLOCK_GATING
 	int i = 0;
@@ -746,10 +782,14 @@ static int rt1711h_set_clock_gating(struct tcpc_device *tcpc, bool en)
 				TCPC_REG_ALERT_RX_ALL_MASK);
 	}
 
-	if (ret == 0)
-		ret = rt1711_i2c_write8(tcpc, RT1711H_REG_CLK_CTRL2, clk2);
-	if (ret == 0)
-		ret = rt1711_i2c_write8(tcpc, RT1711H_REG_CLK_CTRL3, clk3);
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	if (!chip_is_rt1711(chip)) {
+		if (ret == 0)
+			ret = rt1711_i2c_write8(tcpc, RT1711H_REG_CLK_CTRL2, clk2);
+		if (ret == 0)
+			ret = rt1711_i2c_write8(tcpc, RT1711H_REG_CLK_CTRL3, clk3);
+	}
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 #endif	/* CONFIG_TCPC_CLOCK_GATING */
 
 	return ret;
@@ -865,8 +905,12 @@ static int rt1711_tcpc_init(struct tcpc_device *tcpc, bool sw_reset)
 	rt1711_i2c_write8(tcpc, RT1711H_REG_CONFIG_GPIO0, 0x80);
 
 	/* For BIST, Change Transition Toggle Counter (Noise) from 3 to 7 */
-	rt1711_i2c_write8(tcpc, RT1711H_REG_PHY_CTRL1,
-		RT1711H_REG_PHY_CTRL1_SET(retry_discard_old, 7, 0, 1));
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	if (!chip_is_rt1711(chip)) {
+		rt1711_i2c_write8(tcpc, RT1711H_REG_PHY_CTRL1,
+			RT1711H_REG_PHY_CTRL1_SET(retry_discard_old, 7, 0, 1));
+	}
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 
 	rt1711_alert_status_clear(tcpc, 0xffffffff);
 
@@ -891,6 +935,12 @@ static int rt1711_tcpc_init(struct tcpc_device *tcpc, bool sw_reset)
 static inline int rt1711_fault_status_vconn_ov(struct tcpc_device *tcpc)
 {
 	int ret;
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	struct rt1711_chip *chip = tcpc_get_dev_data(tcpc);
+
+	if (chip_is_rt1711(chip))
+		return 0;
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 
 	ret = rt1711_i2c_read8(tcpc, RT1711H_REG_BMC_CTRL);
 	if (ret < 0)
@@ -1318,9 +1368,15 @@ static int rt1711_set_msg_header(
 
 static int rt1711_protocol_reset(struct tcpc_device *tcpc)
 {
-	rt1711_i2c_write8(tcpc, RT1711H_REG_PRL_FSM_RESET, 0);
-	mdelay(1);
-	rt1711_i2c_write8(tcpc, RT1711H_REG_PRL_FSM_RESET, 1);
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+	struct rt1711_chip *chip = tcpc_get_dev_data(tcpc);
+
+	if (!chip_is_rt1711(chip)) {
+		rt1711_i2c_write8(tcpc, RT1711H_REG_PRL_FSM_RESET, 0);
+		mdelay(1);
+		rt1711_i2c_write8(tcpc, RT1711H_REG_PRL_FSM_RESET, 1);
+	}
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	return 0;
 }
 
@@ -1375,11 +1431,14 @@ static int rt1711_get_message(struct tcpc_device *tcpc, uint32_t *payload,
 				       payload);
 	}
 
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#if 0
 	/* Read complete, clear RX status alert bit */
 	if (chip_is_rt1711(chip))
 		tcpci_alert_status_clear(tcpc, TCPC_V10_REG_ALERT_RX_STATUS |
 										TCPC_V10_REG_RX_OVERFLOW);
-
+#endif
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	return rv;
 }
 
@@ -1605,6 +1664,10 @@ static int rt1711_tcpcdev_init(struct rt1711_chip *chip, struct device *dev)
 		desc->notifier_supply_num = 0;
 
 	if (of_property_read_u32(np, "rt-tcpc,rp_level", &val) >= 0) {
+//+P86801EA1-1163 gudi.wt,20230926 mofify 3rd supply pd ic rp_level
+		if (!chip_is_rt1711(chip))
+			val = 2;
+//-P86801EA1-1163 gudi.wt,20230926 mofify 3rd supply pd ic rp_level
 		switch (val) {
 		case TYPEC_RP_DFT:
 		case TYPEC_RP_1_5:

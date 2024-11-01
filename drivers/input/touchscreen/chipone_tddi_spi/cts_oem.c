@@ -38,37 +38,48 @@ extern char Lcm_name_tp[255];
 #define OEM_OF_DEF_PROPVAL_COMP_CAP_MAX     127
 // +P86801AA1 peiyuexiang.wt,add,20230803,compatible HJR
 #define OEM_OF_DEF_PROPVAL_RAWDATA_FRAMES_HJR   1
-#define OEM_OF_DEF_PROPVAL_RAWDATA_MIN_HJR      100
-#define OEM_OF_DEF_PROPVAL_RAWDATA_MAX_HJR      10000
+#define OEM_OF_DEF_PROPVAL_RAWDATA_MIN_HJR      984
+#define OEM_OF_DEF_PROPVAL_RAWDATA_MAX_HJR      2744
 #define OEM_OF_DEF_PROPVAL_NOISE_FRAMES_HJR     16
-#define OEM_OF_DEF_PROPVAL_NOISE_MAX_HJR        1000
-#define OEM_OF_DEF_PROPVAL_OPEN_MIN_HJR         200
-#define OEM_OF_DEF_PROPVAL_SHORT_MIN_HJR        200
+#define OEM_OF_DEF_PROPVAL_NOISE_MAX_HJR        150
+#define OEM_OF_DEF_PROPVAL_OPEN_MIN_HJR         1800
+#define OEM_OF_DEF_PROPVAL_SHORT_MIN_HJR        900
 #define OEM_OF_DEF_PROPVAL_COMP_CAP_MIN_HJR     1
 #define OEM_OF_DEF_PROPVAL_COMP_CAP_MAX_HJR     127
 // -P86801AA1 peiyuexiang.wt,add,20230803,compatible HJR
 // +P86801AA1 peiyuexiang.wt,add,20230803,compatible TXD
 #define OEM_OF_DEF_PROPVAL_RAWDATA_FRAMES_TXD   1
-#define OEM_OF_DEF_PROPVAL_RAWDATA_MIN_TXD      100
-#define OEM_OF_DEF_PROPVAL_RAWDATA_MAX_TXD      10000
+#define OEM_OF_DEF_PROPVAL_RAWDATA_MIN_TXD      984
+#define OEM_OF_DEF_PROPVAL_RAWDATA_MAX_TXD      2744
 #define OEM_OF_DEF_PROPVAL_NOISE_FRAMES_TXD     16
-#define OEM_OF_DEF_PROPVAL_NOISE_MAX_TXD        1000
-#define OEM_OF_DEF_PROPVAL_OPEN_MIN_TXD         200
-#define OEM_OF_DEF_PROPVAL_SHORT_MIN_TXD        200
+#define OEM_OF_DEF_PROPVAL_NOISE_MAX_TXD        150
+#define OEM_OF_DEF_PROPVAL_OPEN_MIN_TXD         1800
+#define OEM_OF_DEF_PROPVAL_SHORT_MIN_TXD        900
 #define OEM_OF_DEF_PROPVAL_COMP_CAP_MIN_TXD     1
 #define OEM_OF_DEF_PROPVAL_COMP_CAP_MAX_TXD     127
 // -P86801AA1 peiyuexiang.wt,add,20230803,compatible TXD
 // +P86801AA1 peiyuexiang.wt,add,20230905,compatible XINXIAN
 #define OEM_OF_DEF_PROPVAL_RAWDATA_FRAMES_XINXIAN   1
-#define OEM_OF_DEF_PROPVAL_RAWDATA_MIN_XINXIAN      100
-#define OEM_OF_DEF_PROPVAL_RAWDATA_MAX_XINXIAN      10000
+#define OEM_OF_DEF_PROPVAL_RAWDATA_MIN_XINXIAN      984
+#define OEM_OF_DEF_PROPVAL_RAWDATA_MAX_XINXIAN      2744
 #define OEM_OF_DEF_PROPVAL_NOISE_FRAMES_XINXIAN     16
-#define OEM_OF_DEF_PROPVAL_NOISE_MAX_XINXIAN        1000
-#define OEM_OF_DEF_PROPVAL_OPEN_MIN_XINXIAN         200
-#define OEM_OF_DEF_PROPVAL_SHORT_MIN_XINXIAN        200
+#define OEM_OF_DEF_PROPVAL_NOISE_MAX_XINXIAN        150
+#define OEM_OF_DEF_PROPVAL_OPEN_MIN_XINXIAN         1800
+#define OEM_OF_DEF_PROPVAL_SHORT_MIN_XINXIAN        900
 #define OEM_OF_DEF_PROPVAL_COMP_CAP_MIN_XINXIAN     1
 #define OEM_OF_DEF_PROPVAL_COMP_CAP_MAX_XINXIAN     127
 // -P86801AA1 peiyuexiang.wt,add,20230905,compatible XINXIAN
+// +P86801AA1 lihesong.wt,add,20230920,compatible dijin
+#define OEM_OF_DEF_PROPVAL_RAWDATA_FRAMES_DIJIN   1
+#define OEM_OF_DEF_PROPVAL_RAWDATA_MIN_DIJIN      990
+#define OEM_OF_DEF_PROPVAL_RAWDATA_MAX_DIJIN      2730
+#define OEM_OF_DEF_PROPVAL_NOISE_FRAMES_DIJIN     16
+#define OEM_OF_DEF_PROPVAL_NOISE_MAX_DIJIN        150
+#define OEM_OF_DEF_PROPVAL_OPEN_MIN_DIJIN         1800
+#define OEM_OF_DEF_PROPVAL_SHORT_MIN_DIJIN        900
+#define OEM_OF_DEF_PROPVAL_COMP_CAP_MIN_DIJIN     1
+#define OEM_OF_DEF_PROPVAL_COMP_CAP_MAX_DIJIN     127
+// -P86801AA1 lihesong.wt,add,20230920,compatible dijin
 #define OEM_OF_PROPNAME_PREFIX              "chipone," //modify
 
 #define OEM_OF_PROPNAME_TEST_RESET_PIN      OEM_OF_PROPNAME_PREFIX"test-reset-pin"
@@ -220,7 +231,7 @@ struct proc_dir_entry *cts_tp_work_proc;
         if (oem_data->test_##type) { \
             if (oem_data->type##_test_data == NULL) { \
                 cts_info(" - Alloc " #type " test data mem size %d", size); \
-                oem_data->type##_test_data = kmalloc(size, GFP_KERNEL); \
+                oem_data->type##_test_data = vmalloc(size); \
                 if (oem_data->type##_test_data == NULL) { \
                     cts_err("Alloc " #type " test data mem failed"); \
                     return -ENOMEM; \
@@ -252,7 +263,7 @@ static int alloc_sleftest_data_mem(struct cts_oem_data *oem_data, int nodes)
     do { \
         if (oem_data->type##_test_data) { \
             cts_info("- Free " #type " test data mem"); \
-            kfree(oem_data->type##_test_data); \
+            vfree(oem_data->type##_test_data); \
             oem_data->type##_test_data = NULL; \
             oem_data->type##_test_data_buff_size = 0; \
         } \
@@ -301,7 +312,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->rawdata_test_frames = OEM_OF_DEF_PROPVAL_RAWDATA_FRAMES_XINXIAN;
         }
-
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->rawdata_test_frames = OEM_OF_DEF_PROPVAL_RAWDATA_FRAMES_DIJIN;
+        }
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_RAWDATA_FRAMES,
                 &oem_data->rawdata_test_frames);
         if (ret) {
@@ -318,6 +331,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         }
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->rawdata_min = OEM_OF_DEF_PROPVAL_RAWDATA_MIN_XINXIAN;
+        }
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->rawdata_min = OEM_OF_DEF_PROPVAL_RAWDATA_MIN_DIJIN;
         }
 
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_RAWDATA_MIN,
@@ -337,7 +353,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->rawdata_max = OEM_OF_DEF_PROPVAL_RAWDATA_MAX_XINXIAN;
         }
-
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->rawdata_max = OEM_OF_DEF_PROPVAL_RAWDATA_MAX_DIJIN;
+        }
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_RAWDATA_MAX,
             (u32 *)&oem_data->rawdata_max);
         if (ret) {
@@ -361,6 +379,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->noise_test_frames = OEM_OF_DEF_PROPVAL_NOISE_FRAMES_XINXIAN;
         }
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->noise_test_frames = OEM_OF_DEF_PROPVAL_NOISE_FRAMES_DIJIN;
+        }
 
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_NOISE_FRAMES,
             &oem_data->noise_test_frames);
@@ -378,6 +399,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         }
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->noise_max = OEM_OF_DEF_PROPVAL_NOISE_MAX_XINXIAN;
+        }
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->noise_max = OEM_OF_DEF_PROPVAL_NOISE_MAX_DIJIN;
         }
 
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_NOISE_MAX,
@@ -403,7 +427,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->open_min = OEM_OF_DEF_PROPVAL_OPEN_MIN_XINXIAN;
         }
-
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->open_min = OEM_OF_DEF_PROPVAL_OPEN_MIN_DIJIN;
+        }
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_OPEN_MIN,
             (u32 *)&oem_data->open_min);
         if (ret) {
@@ -426,6 +452,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         }
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->short_min = OEM_OF_DEF_PROPVAL_SHORT_MIN_XINXIAN;
+        }
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->short_min = OEM_OF_DEF_PROPVAL_SHORT_MIN_DIJIN;
         }
 
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_SHORT_MIN,
@@ -451,6 +480,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->comp_cap_min = OEM_OF_DEF_PROPVAL_COMP_CAP_MIN_XINXIAN;
         }
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->comp_cap_min = OEM_OF_DEF_PROPVAL_COMP_CAP_MIN_DIJIN;
+        }
 
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_COMP_CAP_MIN,
             (u32 *)&oem_data->comp_cap_min);
@@ -468,6 +500,9 @@ static int parse_selftest_dt(struct cts_oem_data *oem_data,
         }
         if (strstr(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt")){
             oem_data->comp_cap_max = OEM_OF_DEF_PROPVAL_COMP_CAP_MAX_XINXIAN;
+        }
+        if (strstr(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe")){
+            oem_data->comp_cap_max = OEM_OF_DEF_PROPVAL_COMP_CAP_MAX_DIJIN;
         }
 
         ret = of_property_read_u32(np, OEM_OF_PROPNAME_COMP_CAP_MAX,

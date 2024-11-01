@@ -3,6 +3,7 @@
 
 #include <linux/regulator/consumer.h>
 #include <linux/extcon-provider.h>
+#include <linux/module.h>
 
 #define CONFIG_SGM41542_ENABLE_HVDCP
 
@@ -68,7 +69,8 @@
 #define SGM41542_REG_04              0x04
 #define SGM41542_VREG_MASK           0xF8
 #define SGM41542_VREG_SHIFT          3
-#define SGM41542_VREG_BASE           3856
+//P86801EA1-1356 gudi.wt,fix current shake when temp 3
+#define SGM41542_VREG_BASE           3847
 #define SGM41542_VREG_LSB            32
 
 /* Register 0x05*/
@@ -284,6 +286,11 @@
 
 #define BC12_FLOAT_CHECK_MAX 1
 
+/*+P231130-06621 liwei19.wt 20231218,reduce the number of AFC and QC identification*/
+#define AFC_DETECT_TIME   30
+#define QC_DETECT_TIME    15
+/*-P231130-06621 liwei19.wt 20231218,reduce the number of AFC and QC identification*/
+
 enum sgm41542_part_no {
 	SGM41511 = 0x02,
 	SGM41542 = 0x0D,
@@ -422,4 +429,7 @@ struct sgm41542_device {
 
 	int afc_type;
 };
+
+MODULE_LICENSE("GPL v2");
+
 #endif

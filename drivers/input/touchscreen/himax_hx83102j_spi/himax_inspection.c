@@ -1418,6 +1418,8 @@ static uint32_t mpTestFunc(uint8_t checktype, uint32_t datalen)
 	int n_frame = 0;
 	uint32_t ret_val = NO_ERR;
 	int check_sort_sts = NO_ERR;
+//+P86801AA1,daijun1.wt,modify,2023/11/24,hx83102 fix unexpected failure of MP_test
+	int retry = 0;
 
 	/*uint16_t* pInspectGridData = &gInspectGridData[0];*/
 	/*uint16_t* pInspectNoiseData = &gInspectNoiseData[0];*/
@@ -1464,6 +1466,9 @@ static uint32_t mpTestFunc(uint8_t checktype, uint32_t datalen)
 		goto fail_wait_sorting_mode;
 	}
 #endif
+fail_retry:
+	if (retry >= 1)
+		check_sort_sts = 1;
 	if (check_sort_sts) {
 		/*himax_check_mode(checktype);*/
 
@@ -1543,6 +1548,12 @@ static uint32_t mpTestFunc(uint8_t checktype, uint32_t datalen)
 
 	ret_val = himax_wait_sorting_mode(checktype);
 	if (ret_val) {
+		if (retry < 3) {
+			I("%s: himax_wait_sorting_mode FAIL, retry=%d\n",
+				__func__, retry++);
+			goto fail_retry;
+		}
+//-P86801AA1,daijun1.wt,modify,2023/11/24,hx83102 fix unexpected failure of MP_test
 		E("%s: himax_wait_sorting_mode FAIL\n", __func__);
 		goto fail_wait_sorting_mode;
 	}

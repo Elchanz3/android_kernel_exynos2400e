@@ -14,6 +14,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/iio/iio.h>
 #include <dt-bindings/iio/qti_power_supply_iio.h>
+#include <linux/module.h>
 
 #define SY_WLS_FAIL    -1
 #define SY_WLS_SUCCESS 0
@@ -227,5 +228,7 @@ struct sy_wls_chrg_chip {
 
 	struct sy65153_msm_vreg_data *vreg_data;
 };
+
+MODULE_LICENSE("GPL v2");
 
 #endif

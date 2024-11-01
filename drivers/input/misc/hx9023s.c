@@ -1733,11 +1733,11 @@ static ssize_t user_test_store(struct class *class,
         hx9023s_pdata.sar_first_boot = false;
         PRINT_INF("hx9023s_pdata.sar_first_boot:%d", hx9023s_pdata.sar_first_boot);
         PRINT_INF("hx9023s:user_test mode, exit force input near mode!!!\n");
-        for( ii = 0; ii < HX9023S_CH_NUM; ii++) {
+        //for( ii = 0; ii < HX9023S_CH_NUM; ii++) {
             if ((hx9023s_pdata.channel_used_flag >> ii) & 0x1) {
                 //mdelay(20);	
                 hx9023s_manual_offset_calibration();
-            }
+           // }
         }
     }
     return count;

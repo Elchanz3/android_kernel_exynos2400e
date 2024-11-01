@@ -3,6 +3,7 @@
 
 #include <linux/regulator/consumer.h>
 #include <linux/extcon-provider.h>
+#include <linux/module.h>
 
 #define CONFIG_CX25890H_ENABLE_HVDCP
 
@@ -423,6 +424,11 @@
 
 #define BC12_FLOAT_CHECK_MAX 1
 
+/*+P231130-06621 liwei19.wt 20231218,reduce the number of AFC and QC identification*/
+#define AFC_DETECT_TIME   30
+#define QC_DETECT_TIME    15
+/*-P231130-06621 liwei19.wt 20231218,reduce the number of AFC and QC identification*/
+
 enum cx25890h_part_no {
 	CX25890H = 0x03,
 };
@@ -570,6 +576,7 @@ int cx25890h_get_vbus_volt(struct cx25890h_device *cx_chg,  int *val);
 int cx25890h_get_vbat_volt(struct cx25890h_device *cx_chg,  int *val);
 int cx25890h_get_ibat_curr(struct cx25890h_device *cx_chg,  int *val);
 
+MODULE_LICENSE("GPL v2");
 
 #endif
 

@@ -624,7 +624,8 @@ static int cts_driver_probe(struct spi_device *client)
 	if ((strcmp(Lcm_name_tp,"chipone_icnl9951r_wt_dsi_vdo_90hz_boe") != 0) &&
 	(strcmp(Lcm_name_tp,"hjr_icnl9951r_wt_dsi_vdo_90hz_hkc") != 0) &&
 	(strcmp(Lcm_name_tp,"txd_icnl9951r_wt_dsi_vdo_90hz_hkc") != 0) &&
-	(strcmp(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt") != 0)) {
+	(strcmp(Lcm_name_tp,"xinxian_icnl9951r_wt_dsi_vdo_90hz_mdt") != 0)&&
+	(strcmp(Lcm_name_tp,"djn_icnl9951r_wt_dsi_vdo_90hz_boe") != 0)) {
 		cts_err("Lcm_name_tp Match failed\n");
 		return -ENODEV;
     }
@@ -701,6 +702,12 @@ static int cts_driver_probe(struct spi_device *client)
     cts_data->pdata->cts_dev = &cts_data->cts_dev;
 
     g_cts_data = cts_data;
+//+P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
+#ifdef CONFIG_PM
+	g_cts_data->dev_pm_suspend = false;
+	init_completion(&g_cts_data->dev_pm_resume_completion);
+#endif
+//-P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
 
     cts_data->workqueue =
     create_singlethread_workqueue(CFG_CTS_DEVICE_NAME "-workqueue");
@@ -1031,7 +1038,38 @@ static const struct dev_pm_ops cts_i2c_driver_pm_ops = {
     .suspend = cts_i2c_driver_pm_suspend,
     .resume = cts_i2c_driver_pm_resume,
 };
+//+P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
+#else
+#ifdef CONFIG_PM
+static int cts_pm_suspend(struct device *dev)
+{
+	cts_info("%s : start\n", __func__);
+
+	g_cts_data->dev_pm_suspend = true;
+	reinit_completion(&g_cts_data->dev_pm_resume_completion);
+
+	cts_info("%s : end\n", __func__);
+	return 0;
+}
+
+static int cts_pm_resume(struct device *dev)
+{
+	cts_info("%s : start\n", __func__);
+
+	g_cts_data->dev_pm_suspend = false;
+	complete(&g_cts_data->dev_pm_resume_completion);
+
+	cts_info("%s : end\n", __func__);
+	return 0;
+}
+
+static const struct dev_pm_ops cts_dev_pm_ops = {
+	.suspend = cts_pm_suspend,
+	.resume = cts_pm_resume,
+};
+#endif
 #endif /* CONFIG_CTS_PM_GENERIC */
+//-P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
 
 #ifdef CONFIG_CTS_SYSFS
 static ssize_t reset_pin_show(struct device_driver *driver, char *buf)
@@ -1298,8 +1336,13 @@ static struct spi_driver cts_spi_driver = {
 #endif /* CONFIG_CTS_PM_LEGACY */
 #ifdef CONFIG_CTS_PM_GENERIC
         .pm = &cts_i2c_driver_pm_ops,
+//+P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
+#else
+#ifdef CONFIG_PM
+		.pm = &cts_dev_pm_ops,
+#endif
 #endif /* CONFIG_CTS_PM_GENERIC */
-
+//-P86801AA1,daijun1.wt,add,2023/10/27,icnl9951 fix the issue of slow double-click wake-up
         },
     .id_table = cts_device_id_table,
 };

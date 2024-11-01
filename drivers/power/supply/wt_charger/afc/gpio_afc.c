@@ -54,7 +54,8 @@
 #endif
 //-ReqP86801AA1-3595, liyiying.wt, add, 20230801, Configure SEC_BAT_CURRENT_EVENT_HV_DISABLE
 
-
+//P86801AA2-3236, liwei.wt, add, 20240401, get vbus from pmic iio
+#define AFC_VBUS_FROM_PMIC
 static struct afc_dev *gafc = NULL;
 
 
@@ -317,6 +318,8 @@ afc_fail:
 static void afc_set_voltage_workq(struct work_struct *work)
 {
 	int i = 0, ret = 0, retry_cnt = 0, vbus = 0, vbus_retry = 0;
+	//P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+	int afc_detect_time = AFC_RETRY_MAX_EARLY;
 	//int i = 0, ret = 0, retry_cnt = 0, vbus = 0;
 
 	pr_err("%s, afc_used is :%d, afc_disable is %d\n", __func__, gafc->afc_used, gafc->afc_disable);
@@ -333,11 +336,19 @@ static void afc_set_voltage_workq(struct work_struct *work)
 		}
 	}
 
+//+P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+#ifdef CONFIG_QGKI_BUILD
+	if (wt_chg_probe_status == WT_PROBE_STATUS_TIMEOUT) {
+		afc_detect_time = AFC_RETRY_MAX_LATER;
+	}
+#endif
+//-P240228-03997,liwei19.wt,modify,2024/03/13,slove that low battery charge mode with pd TA will reboot
+
 	gpio_direction_output(gafc->afc_switch_gpio, 1);
 	if (!gafc->afc_used)
 		gafc->afc_used = true;
 
-	for (i = 0; (i < AFC_COMM_CNT) && (retry_cnt < AFC_RETRY_MAX); i++) {
+	for (i = 0; (i < AFC_COMM_CNT) && (retry_cnt < afc_detect_time); i++) {
 		ret = afc_communication();
 		msleep(38);
 		if (ret < 0) {
@@ -356,7 +367,7 @@ static void afc_set_voltage_workq(struct work_struct *work)
 		}
 	}
 
-	if (retry_cnt == AFC_RETRY_MAX) {
+	if (retry_cnt == afc_detect_time) {
 		pr_info("%s, retry count is over!\n", __func__);
 		goto send_result;
 	}
@@ -419,8 +430,13 @@ int afc_set_voltage(int vol)
 
 	gafc->vol = vol;
 	pr_info("%s, set_voltage(%d)\n", __func__, vol);
-	schedule_work(&gafc->afc_set_voltage_work);
+	//+P86801AA2-3236, liwei.wt, modify, 20240401, get vbus from pmic iio
+	gpio_direction_output(gafc->afc_switch_gpio, 0);
 
+	//schedule_work(&gafc->afc_set_voltage_work);
+	cancel_delayed_work(&gafc->afc_set_voltage_work);
+	schedule_delayed_work(&gafc->afc_set_voltage_work, 0);
+	//-P86801AA2-3236, liwei.wt, modify, 20240401, get vbus from pmic iio
 	return 0;
 }
 
@@ -441,7 +457,10 @@ void detach_afc(void)
 		pr_info("%s\n", __func__);
 		gafc->afc_type = AFC_FAIL;
 		gafc->afc_used = false;
-		cancel_work_sync(&gafc->afc_set_voltage_work);
+		//+P86801AA2-3236, liwei.wt, modify, 20240401, get vbus from pmic iio
+		//cancel_work_sync(&gafc->afc_set_voltage_work);
+		cancel_delayed_work(&gafc->afc_set_voltage_work);
+		//-P86801AA2-3236, liwei.wt, modify, 20240401, get vbus from pmic iio
 		gpio_direction_output(gafc->afc_switch_gpio, 0);
 
 }
@@ -539,8 +558,8 @@ struct iio_channel ** afc_get_ext_channels(struct device *dev,
 	return iio_ch_ext;
 }
 
-
-
+//+P86801AA2-3236, liwei.wt, add, 20240401, get vbus from pmic iio
+#ifndef AFC_VBUS_FROM_PMIC
 static bool  afc_is_wtchg_chan_valid(struct afc_dev *gafc,
 		enum wtcharge_iio_channels chan)
 {
@@ -564,7 +583,8 @@ static bool  afc_is_wtchg_chan_valid(struct afc_dev *gafc,
 
 	return true;
 }
-
+#endif
+//-P86801AA2-3236, liwei.wt, add, 20240401, get vbus from pmic iio
 
 /*static int afc_write_iio_prop(struct afc_dev *gafc,
 				int channel, int val)
@@ -582,6 +602,8 @@ static bool  afc_is_wtchg_chan_valid(struct afc_dev *gafc,
 	return ret < 0 ? ret : 0;
 }*/
 
+//+P86801AA2-3236, liwei.wt, modify, 20240401, get vbus from pmic iio
+#ifndef AFC_VBUS_FROM_PMIC
 static int afc_read_iio_prop(struct afc_dev *gafc,
 				int channel, int *val)
 {
@@ -597,7 +619,72 @@ static int afc_read_iio_prop(struct afc_dev *gafc,
 
 	return ret < 0 ? ret : 0;
 }
+#endif
 
+#ifdef AFC_VBUS_FROM_PMIC
+static bool afc_is_pmic_chan_valid(struct afc_dev *gafc,
+		enum pmic_iio_channels chan)
+{
+	int rc;
+	struct iio_channel **iio_list;
+
+	if (!gafc->pmic_ext_iio_chans) {
+		iio_list = afc_get_ext_channels(gafc->dev, pmic_iio_chan_name,
+		ARRAY_SIZE(pmic_iio_chan_name));
+		if (IS_ERR(iio_list)) {
+			rc = PTR_ERR(iio_list);
+			if (rc != -EPROBE_DEFER) {
+				dev_err(gafc->dev, "Failed to get channels, %d\n",
+					rc);
+				gafc->pmic_ext_iio_chans = NULL;
+			}
+			return false;
+		}
+		gafc->pmic_ext_iio_chans = iio_list;
+	}
+
+	return true;
+}
+
+int afc_get_vbus_value(struct afc_dev *gafc,  int *val)
+{
+	int ret, temp;
+	struct iio_channel *iio_chan_list;
+
+	if (!afc_is_pmic_chan_valid(gafc, VBUS_VOLTAGE)) {
+		dev_err(gafc->dev,"read vbus_dect channel fail\n");
+		return -ENODEV;
+	}
+
+	iio_chan_list = gafc->pmic_ext_iio_chans[VBUS_VOLTAGE];
+	ret = iio_read_channel_processed(iio_chan_list, &temp);
+	if (ret < 0) {
+		dev_err(gafc->dev,
+		"read vbus_dect channel fail, ret=%d\n", ret);
+		return ret;
+	}
+	*val = temp / 100;
+	dev_err(gafc->dev,"%s: vbus_volt = %d \n", __func__, *val);
+
+	return ret;
+}
+
+static int afc_get_vbus(void)
+{
+	int val;
+	int ret;
+
+	ret = afc_get_vbus_value(gafc, &val);
+	if (ret < 0) {
+		//dev_err(gafc, "%s: fail: %d\n", __func__, ret);
+		pr_err(" afc_get_vbus error \n");
+		val = 0;
+	}
+	pr_err(" afc_get_vbus :%d \n", val);
+	return val;
+}
+#endif
+#ifndef AFC_VBUS_FROM_PMIC
 static int afc_get_vbus(void)
 {
 	int val;
@@ -612,7 +699,8 @@ static int afc_get_vbus(void)
 	pr_err(" afc_get_vbus :%d \n", val);
 	return val;
 }
-
+#endif
+//-P86801AA2-3236, liwei.wt, modify, 20240401, get vbus from pmic iio
 
 static int afc_iio_write_raw(struct iio_dev *indio_dev,
 		struct iio_chan_spec const *chan, int val1,
@@ -971,7 +1059,9 @@ static int gpio_afc_probe(struct platform_device *pdev)
 	get_afc_mode();
 
 	spin_lock_init(&gafc->afc_spin_lock);
-	INIT_WORK(&gafc->afc_set_voltage_work, afc_set_voltage_workq);
+	//P86801AA2-3236, liwei.wt, modify, 20240401, get vbus from pmic iio
+	//INIT_WORK(&gafc->afc_set_voltage_work, afc_set_voltage_workq);
+	INIT_DELAYED_WORK(&gafc->afc_set_voltage_work, afc_set_voltage_workq);
 
 //+ReqP86801AA1-3595, liyiying.wt, add, 20230801, Configure SEC_BAT_CURRENT_EVENT_HV_DISABLE
 #if defined(CONFIG_DRV_SAMSUNG) && defined(CONFIG_QGKI_BUILD)
@@ -1044,5 +1134,5 @@ module_exit(gpio_afc_exit);
 
 MODULE_AUTHOR("WingTech Inc.");
 MODULE_DESCRIPTION("GPIO AFC DRIVER");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
 

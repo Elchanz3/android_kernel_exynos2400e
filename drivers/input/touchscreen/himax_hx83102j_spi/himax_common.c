@@ -3501,7 +3501,9 @@ void himax_chip_common_deinit(void)
 
 	I("%s: Common section deinited!\n", __func__);
 }
-
+#ifdef CONFIG_QGKI_BUILD
+extern bool is_shut_down;
+#endif
 int himax_chip_common_suspend(struct himax_ts_data *ts)
 {
 	if (ts->suspended) {
@@ -3563,8 +3565,14 @@ int himax_chip_common_suspend(struct himax_ts_data *ts)
 		if (ts->pdata->powerOff3V3 && ts->pdata->power)
 			ts->pdata->power(0);
 
+	himax_rst_gpio_set(hx_s_ts->rst_gpio,0);
 END:
 	himax_report_all_leave_event(ts);
+#ifdef CONFIG_QGKI_BUILD
+	if(is_shut_down){
+		himax_rst_gpio_set(hx_s_ts->rst_gpio,0);
+	}
+#endif
 	I("%s: END\n", __func__);
 
 	return 0;
@@ -3578,7 +3586,11 @@ int himax_chip_common_resume(struct himax_ts_data *ts)
 	} else {
 		ts->suspended = false;
 	}
-
+// +P86801AA1 daijun1.wt,modify,2023/10/18,hx83102,adjusting the TP_reset when the screen lights up
+	if (!ts->SMWP_enable) {
+		himax_rst_gpio_set(hx_s_ts->rst_gpio,1);
+	}
+// -P86801AA1 daijun1.wt,modify,2023/10/18,hx83102,adjusting the TP_reset when the screen lights up
 	I("%s: enter\n", __func__);
 
 	if (ts->in_self_test == 1) {

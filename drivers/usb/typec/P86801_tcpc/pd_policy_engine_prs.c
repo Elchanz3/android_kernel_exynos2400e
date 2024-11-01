@@ -98,6 +98,11 @@ void pe_prs_snk_src_assert_rp_entry(struct pd_port *pd_port)
 	pd_dpm_prs_change_role(pd_port, PD_ROLE_SOURCE);
 }
 
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#if 0 //def CONFIG_QGKI_BUILD
+extern void wtchg_turn_off_hiz(void);
+#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 void pe_prs_snk_src_source_on_entry(struct pd_port *pd_port)
 {
 #ifdef CONFIG_USB_PD_RESET_CABLE
@@ -106,7 +111,11 @@ void pe_prs_snk_src_source_on_entry(struct pd_port *pd_port)
 
 	pd_dpm_dynamic_enable_vconn(pd_port);
 	pd_dpm_prs_enable_power_source(pd_port, true);
-
+/*+ P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
+#if 0 //def CONFIG_QGKI_BUILD
+	wtchg_turn_off_hiz();
+#endif //CONFIG_QGKI_BUILD
+/*- P86801AA1-13544, gudi1@wt, add 20231017, usb if*/
 	/* Send PS_Rdy in process_event after source_on */
 }
 

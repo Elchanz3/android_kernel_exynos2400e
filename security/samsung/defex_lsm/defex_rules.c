@@ -164,7 +164,6 @@
 	{feature_safeplace_path,"/system/bin/hqcpsnbin"},
 	{feature_safeplace_path,"/system/bin/rdxd"},
 	{feature_safeplace_path,"/system/system_ext/bin/dpmd"},
-	{feature_safeplace_path,"/system_ext/bin/dpmd"},
 	{feature_safeplace_path,"/vendor/bin/init.qti.dcvs.sh"},
 	{feature_safeplace_path,"/vendor/bin/vendor_modprobe.sh"},
 	{feature_safeplace_path,"/vendor/bin/init.qti.qcv.sh"},
@@ -180,7 +179,6 @@
 	{feature_safeplace_path,"/vendor/bin/poweropt-service"},
 	{feature_safeplace_path,"/vendor/bin/hw/vendor.qti.hardware.limits@1.0-service"},
 	{feature_safeplace_path,"/vendor/bin/hw/interfaces.factoryInterface@1.0-service"},
-	{feature_safeplace_path,"/vendor/bin/wfdhdcphalservice"},
 	{feature_safeplace_path,"/vendor/bin/thermal_manager"},
 	{feature_safeplace_path,"/system/bin/linkerconfig"},
 	{feature_safeplace_path,"/system/bin/snapshotctl"},
@@ -241,8 +239,6 @@
 	{feature_immutable_src_exception,"/init"},
 	{feature_immutable_src_exception,"/system/bin/init"},
 	{feature_immutable_src_exception,"/system/bin/lshal"},
-	{feature_immutable_src_exception,"/apex/com.android.runtime/bin/crash_dump32"},	/* DEFAULT */
-	{feature_immutable_src_exception,"/apex/com.android.runtime/bin/crash_dump64"},	/* DEFAULT */
 	{feature_integrity_check,"/vendor/bin/hw/android.hardware.gatekeeper@1.0-service"},
 	{feature_integrity_check,"/vendor/bin/hw/android.hardware.keymaster@4.0-service"},
 	{feature_integrity_check,"/vendor/bin/hw/android.hardware.security.keymint-service"},

@@ -10,6 +10,7 @@
 #include <linux/iio/iio.h>
 #include <dt-bindings/iio/qti_power_supply_iio.h>
 #include <linux/iio/consumer.h>
+#include <linux/module.h>
 
 struct sy65153_iio_channels {
 	const char *datasheet_name;
@@ -60,5 +61,7 @@ static const char * const wtchg_iio_chan_name[] = {
 	[WTCHG_OTG_ENABLE] = "wt_otg_enable",
 	[LOGIC_IC_RESET] = "chip_reset",
 };
+
+MODULE_LICENSE("GPL v2");
 
 #endif /* __SY65153_WL_CHARGER_IIO_H */

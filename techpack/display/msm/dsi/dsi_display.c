@@ -4,7 +4,6 @@
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
  */
 
-
 #include <linux/list.h>
 #include <linux/of.h>
 #include <linux/of_gpio.h>
@@ -5932,6 +5931,12 @@ static int dsi_display_bind(struct device *dev,
 		DSI_INFO("Successfully bind display panel '%s'\n", display->name);
 	}
 	else if(!strcmp("qcom,mdss_dsi_icnl9951r_djn_video_display",display->name))
+	{
+		strlcpy(Lcm_name, utils->get_property(utils->data,"qcom,mdss-dsi-panel-name", NULL), HARDWARE_MAX_ITEM_LONGTH);
+		strlcpy(Lcm_name_tp, utils->get_property(utils->data,"qcom,mdss-dsi-panel-name", NULL), 255);
+		DSI_INFO("Successfully bind display panel '%s'\n", display->name);
+	}
+	else if(!strcmp("qcom,mdss_dsi_jd9366ts_video_display",display->name))
 	{
 		strlcpy(Lcm_name, utils->get_property(utils->data,"qcom,mdss-dsi-panel-name", NULL), HARDWARE_MAX_ITEM_LONGTH);
 		strlcpy(Lcm_name_tp, utils->get_property(utils->data,"qcom,mdss-dsi-panel-name", NULL), 255);

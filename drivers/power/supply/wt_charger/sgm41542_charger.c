@@ -31,6 +31,9 @@
 #include "sgm41542_charger.h"
 #include "sgm41542_iio.h"
 #include <linux/hardware_info.h>
+//+P86801EA2_896 sgm41542_request_dpdm experiences a deadlock, causing the system to crash
+#include "wt_chg.h"
+//-P86801EA2_896sgm41542_request_dpdm experiences a deadlock, causing the system to crash
 //#include "sgm41542_reg.h"
 
 #define CHARGER_IC_NAME "SGM41543D"
@@ -69,21 +72,28 @@ static int sgm41542_set_charge_voltage(struct sgm41542_device *sgm_chg, u32 uV);
 static int sgm41542_get_ibat_curr(struct sgm41542_device *sgm_chg,  int *val);
 static int sgm41542_get_vbat_volt(struct sgm41542_device *sgm_chg,  int *val);
 static void sgm41542_dynamic_adjust_charge_voltage(struct sgm41542_device *sgm_chg, int vbat);
+//P231018-03087 gudi.wt 20231103,fix add hiz func
+void typec_set_input_suspend_for_usbif_upm6910(bool enable);
+//+P86801EA2-300 gudi.wt battery protect function
+#ifdef CONFIG_QGKI_BUILD
+bool sgm41542_if_been_used(void);
+#endif
+//-P86801EA2-300 gudi.wt battery protect function
 
 static int sgm41542_read_byte(struct sgm41542_device *sgm_chg, u8 *data, u8 reg)
 {
 	int ret;
 
-	mutex_lock(&sgm41542_i2c_lock);
+	//mutex_lock(&sgm41542_i2c_lock);
 	ret = i2c_smbus_read_byte_data(sgm_chg->client, reg);
 	if (ret < 0) {
 		dev_err(sgm_chg->dev, "failed to read 0x%.2x\n", reg);
-		mutex_unlock(&sgm41542_i2c_lock);
+	//	mutex_unlock(&sgm41542_i2c_lock);
 		return ret;
 	}
 
 	*data = (u8)ret;
-	mutex_unlock(&sgm41542_i2c_lock);
+	//mutex_unlock(&sgm41542_i2c_lock);
 
 	return 0;
 }
@@ -92,9 +102,9 @@ static int sgm41542_write_byte(struct sgm41542_device *sgm_chg, u8 reg, u8 data)
 {
 	int ret;
 
-	mutex_lock(&sgm41542_i2c_lock);
+//	mutex_lock(&sgm41542_i2c_lock);
 	ret = i2c_smbus_write_byte_data(sgm_chg->client, reg, data);
-	mutex_unlock(&sgm41542_i2c_lock);
+//	mutex_unlock(&sgm41542_i2c_lock);
 
 	return ret;
 }
@@ -454,6 +464,20 @@ static int sgm41542_set_charge_voltage(struct sgm41542_device *sgm_chg, u32 mV)
 }
 //-bug 816469,tankaikun.wt,mod,2023/1/30, IR compensation
 
+//+P86801EA2-300 gudi.wt battery protect function
+#ifdef CONFIG_QGKI_BUILD
+bool sgm41542_if_been_used(void)
+{
+	if(g_sgm_chg == NULL){
+		return false;
+	}
+
+	return true;
+}
+EXPORT_SYMBOL(sgm41542_if_been_used);
+#endif
+//-P86801EA2-300 gudi.wt battery protect function
+
 static int sgm41542_enable_term(struct sgm41542_device *sgm_chg, bool enable)
 {
 	u8 val;
@@ -631,6 +655,7 @@ static int sgm41542_set_input_suspend(struct sgm41542_device *sgm_chg, int suspe
 	int  ret = 0;
 
 	dev_err(sgm_chg->dev, "set input suspend: %d\n", suspend);
+
 	if (suspend) {
 		sgm_chg->hiz_mode = true; //bug 761884, tankaikun@wt, add 20220806, fix user set hiz mode, vbus online update slowly
 		sgm41542_enter_hiz_mode(sgm_chg);
@@ -642,6 +667,24 @@ static int sgm41542_set_input_suspend(struct sgm41542_device *sgm_chg, int suspe
 	return ret;
 }
 
+//+P231018-03087 gudi.wt 20231103,fix add hiz func
+void typec_set_input_suspend_for_usbif_upm6910(bool enable)
+{
+
+	if(g_sgm_chg == NULL){
+		return;
+	}
+
+	dev_err(g_sgm_chg->dev, "typec set input suspend: %d\n", enable);
+	if (enable) {
+		g_sgm_chg->hiz_mode = true; //bug 761884, tankaikun@wt, add 20220806, fix user set hiz mode, vbus online update slowly
+		sgm41542_enter_hiz_mode(g_sgm_chg);
+	} else {
+		g_sgm_chg->hiz_mode = false; //bug 761884, tankaikun@wt, add 20220806, fix user set hiz mode, vbus online update slowly
+		sgm41542_exit_hiz_mode(g_sgm_chg);
+	}
+}
+//-P231018-03087 gudi.wt 20231103,fix add hiz func
 //+ bug 761884, tankaikun@wt, add 20220708, charger bring up
 #ifdef CONFIG_SGM41542_ENABLE_HVDCP
 static int sgm41542_enable_qc20_hvdcp_5v(struct sgm41542_device *sgm_chg)
@@ -1817,6 +1860,9 @@ static void sgm41542_charger_detect_workfunc(struct work_struct *work)
 		sgm41542_get_vbus_volt(sgm_chg, &vbus);
 		if (vbus > HVDCP_AFC_VOLT_MIN) {
 			//sgm41542_request_dpdm(sgm_chg, false);
+#ifdef CONFIG_QGKI_BUILD
+			sgm41542_get_hv_dis_status(sgm_chg, &val_hv);
+#endif
 			return;
 		}
 	}
@@ -1826,7 +1872,8 @@ static void sgm41542_charger_detect_workfunc(struct work_struct *work)
 	sgm41542_set_dp0p6_for_afc(sgm_chg);
 	sgm41542_set_afc_9v(sgm_chg);
 
-	for (i = 0; i <= 30; i++) {
+	// P231130-06621 liwei19.wt 20231218,reduce the number of AFC and QC identification
+	for (i = 0; i <= AFC_DETECT_TIME; i++) {
 		msleep(100);
 		sgm41542_get_vbus_volt(sgm_chg, &vbus);
 		dev_err(sgm_chg->dev, "afc_detect: time: %d, vbus_volt: %d\n", i, vbus);
@@ -1850,7 +1897,8 @@ static void sgm41542_charger_detect_workfunc(struct work_struct *work)
 	//start QC20 detect
 	ret = sgm4154x_hvdcp_detect_work(sgm_chg);
 	sgm41542_enable_qc20_hvdcp_9v(sgm_chg);
-	for (i = 0; i <= 15; i++) {
+	// P231130-06621 liwei19.wt 20231218,reduce the number of AFC and QC identification
+	for (i = 0; i <= QC_DETECT_TIME; i++) {
 		msleep(100);
 		sgm41542_get_vbus_volt(sgm_chg, &vbus);
 		dev_err(sgm_chg->dev, "qc20_detect: time: %d, vbus_volt: %d\n", i, vbus);
@@ -1946,7 +1994,9 @@ static void sgm41542_charger_irq_workfunc(struct work_struct *work)
 	bool prev_pg;
 	bool prev_vbus_gd;
 	int i;
-
+//+P86801EA2_896 sgm41542_request_dpdm experiences a deadlock, causing the system to crash
+	extern int wt_chg_probe_status;
+//-P86801EA2_896 sgm41542_request_dpdm experiences a deadlock, causing the system to crash
 	struct sgm41542_device *sgm_chg = container_of(work,
 								struct sgm41542_device, irq_work.work);
 
@@ -1991,6 +2041,25 @@ static void sgm41542_charger_irq_workfunc(struct work_struct *work)
 		if (sgm_chg->usb_online) {
 			msleep(200);
 		}
+
+		//+P240311-07714,liwei19.wt,modify,2024/03/18, DUT connects to PD HUB with mouse or
+		//+USB drive, but cannot recognize mouse or USB drive after inserting a charger.
+//+P86801EA2_896 sgm41542_request_dpdm experiences a deadlock, causing the system to crash
+#ifdef CONFIG_QGKI_BUILD
+		if(wt_chg_probe_status == WT_PROBE_STATUS_START)
+		{
+			pr_err("sgm41542_request_dpdm while wt_chg_probe_status == WT_PROBE_STATUS_START\n");
+			if(sgm_chg->apsd_rerun == 0)
+			{
+				sgm_chg->apsd_rerun = 1;
+				sgm41542_request_dpdm(sgm_chg,true);
+				pr_err("sgm41542_request_dpdm while probe\n");
+			}
+		}
+#endif
+//-P86801EA2_896 sgm41542_request_dpdm experiences a deadlock, causing the system to crash
+		//-P240311-07714,liwei19.wt,modify,2024/03/18, DUT connects to PD HUB with mouse or
+		//-USB drive, but cannot recognize mouse or USB drive after inserting a charger.
 		sgm41542_set_chg_enable(sgm_chg, true);
 	} else if (prev_vbus_gd && !sgm_chg->vbus_good) {
 		sgm_chg->vbus_type = SGM41542_VBUS_NONE;
@@ -2006,10 +2075,9 @@ static void sgm41542_charger_irq_workfunc(struct work_struct *work)
 		sgm41542_update_wtchg_work(sgm_chg);
 		goto irq_exit;
 	}
-
-	if (sgm_chg->apsd_rerun  && sgm_chg->vbus_good && sgm_chg->usb_online) {
+//P231102-08573 gudi.wt 20231128,remove rerun for upm6918
+	if (sgm_chg->vbus_good && sgm_chg->usb_online) {
 		sgm41542_get_vbus_type(sgm_chg);
-		sgm_chg->apsd_rerun = false;
 
 		if (sgm_chg->vbus_type == SGM41542_VBUS_USB_DCP
 				|| sgm_chg->vbus_type == SGM41542_VBUS_NONSTAND_1A
@@ -2407,6 +2475,7 @@ static int sgm41542_parse_dt(struct device *dev, struct sgm41542_device *sgm_chg
 		sgm_chg->cfg.enable_ir_compensation = 0;
 	} else {
 		dev_err(sgm_chg->dev, "enable_ir_compensation: %d\n", sgm_chg->cfg.enable_ir_compensation);
+		sgm_chg->cfg.enable_ir_compensation = 0;
 	}
 	//-bug816469,tankaikun.wt,add,2023/1/30, IR compensation
 
