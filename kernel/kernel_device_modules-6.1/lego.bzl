@@ -60,7 +60,7 @@ lego_module_list = [
 ]
 
 lego_dtbo_list = [
-"gts10p_eur_openx_w00_r04.dtbo",
-"gts10p_eur_openx_w00_r02.dtbo",
-"gts10p_eur_openx_w00_r00.dtbo"
+"gts10p_usa_singlew_w00_r04.dtbo",
+"gts10p_usa_singlew_w00_r02.dtbo",
+"gts10p_usa_singlew_w00_r00.dtbo"
 ]

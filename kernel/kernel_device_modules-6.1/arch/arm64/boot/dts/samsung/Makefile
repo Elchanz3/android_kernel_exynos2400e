@@ -1,6 +1,6 @@
-dtb-y += gts10p_eur_openx_w00_r04.dtbo
-dtb-y += gts10p_eur_openx_w00_r02.dtbo
-dtb-y += gts10p_eur_openx_w00_r00.dtbo
+dtb-y += gts10p_usa_singlew_w00_r04.dtbo
+dtb-y += gts10p_usa_singlew_w00_r02.dtbo
+dtb-y += gts10p_usa_singlew_w00_r00.dtbo
 
 # SPDX-License-Identifier: GPL-2.0
 

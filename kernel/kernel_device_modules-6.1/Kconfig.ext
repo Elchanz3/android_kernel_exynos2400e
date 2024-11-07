@@ -113,9 +113,8 @@ source "$(KCONFIG_EXT_PREFIX)drivers/samsung/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)block/Kconfig"
 source "$(KCONFIG_EXT_PREFIX)drivers/sec_panel_notifier_v2/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/usb/typec/manager/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
-source "$(KCONFIG_EXT_PREFIX)security/samsung/proca/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
-source "$(KCONFIG_EXT_PREFIX)security/samsung/proca/gaf/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/input/sec_input/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
+source "$(KCONFIG_EXT_PREFIX)drivers/battery/battery_auth/ds28e30/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/muic/common/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/staging/android/switch/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/gpu/drm/panel/mcd_panel/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
@@ -128,13 +127,13 @@ source "$(KCONFIG_EXT_PREFIX)drivers/gpu/drm/samsung/panel/ana38407/kunit_test/K
 source "$(KCONFIG_EXT_PREFIX)drivers/gpu/drm/samsung/panel/oled_common/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/vibrator/common/vib_info/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/sti/common/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
+source "$(KCONFIG_EXT_PREFIX)drivers/battery/battery_auth/sle956681/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/input/input_boost/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/input/touchscreen/goodix/berlin/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/sensorhub/vendor/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/battery/core/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/kperfmon/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/usb/notify/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
-source "$(KCONFIG_EXT_PREFIX)security/samsung/five/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/knox/hdm/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/fingerprint/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/battery/charger/sm5714_charger/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
@@ -149,13 +148,11 @@ source "$(KCONFIG_EXT_PREFIX)drivers/input/misc/hall/Kconfig" # ADDED BY LEGO AU
 source "$(KCONFIG_EXT_PREFIX)drivers/battery/fuelgauge/sm5714_fuelgauge/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/muic/sm/sm5714/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/samsung/pm/sec_thermistor/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
-source "$(KCONFIG_EXT_PREFIX)drivers/battery/battery_auth/ds28e30/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/sensorhub/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/sensorhub/debug/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/sensorhub/sensor/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/sensorhub/sensorhub/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/nfc/snvm/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
-source "$(KCONFIG_EXT_PREFIX)drivers/battery/battery_auth/sle956681/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/redriver/ps5169/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/input/wacom/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 source "$(KCONFIG_EXT_PREFIX)drivers/input/sec_input/stm_fst1ba90a_i2c/Kconfig" # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT

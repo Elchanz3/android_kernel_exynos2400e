@@ -13,10 +13,10 @@
 			bias-disable;
 		};
 	};
-#if 0
+#if 1
 	usbpd_vbus_discharging: usbpd_vbus_discharging {
 		pins_cmd_dat {
-			pinmux = <MTK_PINMUX(SEC_GPIO_NUM(${usbpd_vbus_discharging_gpio}), 0)>;
+			pinmux = <MTK_PINMUX(SEC_GPIO_NUM(AP,pio,157), 0)>;
 			slew-rate = <1>;
 			bias-disable;
 		};
@@ -53,13 +53,13 @@
 		reg = <0x33>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&usbpd_irq
-#if 0
+#if 1
 				&usbpd_vbus_discharging
 #endif
 		>;
 		usbpd,usbpd_int = <SEC_GPIO_REF(AP,pio,14) 0>;
-#if 0
-		usbpd,vbus_discharging = <SEC_GPIO_REF(${usbpd_vbus_discharging_gpio}) 0>;
+#if 1
+		usbpd,vbus_discharging = <SEC_GPIO_REF(AP,pio,157) 0>;
 #endif
 #if 1
 		vconn-en;
