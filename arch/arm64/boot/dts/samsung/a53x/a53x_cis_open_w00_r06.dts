@@ -386,11 +386,9 @@
 					battery,mix_v2_dchg_cond = <0x00>;
 					battery,full_condition_type = <0x09>;
 					battery,full_condition_soc = <0x5d>;
-					battery,full_condition_vcell = <0x1112>;
 					battery,recharge_check_count = <0x01>;
 					battery,recharge_condition_type = <0x04>;
 					battery,recharge_condition_soc = <0x62>;
-					battery,recharge_condition_vcell = <0x10fe>;
 					battery,charging_reset_time = <0x00>;
 					battery,chg_float_voltage = <0x1144>;
 					battery,pre_afc_work_delay = <0x7d0>;
@@ -398,7 +396,6 @@
 					battery,pre_afc_input_current = <0x1f4>;
 					battery,pre_wc_afc_input_current = <0x1f4>;
 					battery,swelling_high_rechg_voltage = <0xfd2>;
-					battery,swelling_low_rechg_voltage = <0x10ae>;
 					battery,siop_icl = <0x4b0>;
 					battery,siop_fcc = <0x708>;
 					battery,siop_hv_icl = <0x2a3>;
@@ -426,9 +423,7 @@
 					battery,wireless_otg_input_current = <0x384>;
 					battery,age_data_cycle = <0x00 0x12c 0x190 0x2bc 0x3e8>;
 					battery,age_data_full_condition_soc = <0x5d 0x5c 0x5b 0x5a 0x59>;
-					battery,age_data_chg_float_voltage_offset = <0x00 0x14 0x28 0x3c 0x6e>;
-					battery,age_data_full_condition_vcell_offset = <0x00 0x14 0x28 0x3c 0x6e>;
-					battery,age_data_recharge_condition_vcell_offset = <0x00 0x14 0x28 0x3c 0x6e>;
+					battery,age_data_common_offset = <0x00 0x14 0x28 0x6e>;
 					battery,age_data = <0x00 0x1144 0x10fe 0x1112 0x5d 0x12c 0x1130 0x10ea 0x10fe 0x5c 0x190 0x111c 0x10d6 0x10ea 0x5b 0x2bc 0x1108 0x10c2 0x10d6 0x5a 0x3e8 0x10d6 0x1090 0x10a4 0x59>;
 					battery,health_condition_cycle = <0x384 0x4b0 0x5dc>;
 					battery,health_condition_asoc = <0x00 0x00 0x00>;
@@ -453,8 +448,11 @@
 					battery,temp_table_data = <0x384 0x352 0x320 0x2ee 0x2bc 0x28a 0x258 0x226 0x1f4 0x1c2 0x190 0x15e 0x12c 0xfa 0xc8 0x96 0x64 0x32 0x00 0xffffffce 0xffffff9c 0xffffff6a 0xffffff38>;
 					battery,chg_temp_table_adc = <0x125 0x15d 0x198 0x1e6 0x22d 0x28d 0x2d7 0x360 0x3ff 0x49c 0x558 0x623 0x6e6 0x78e 0x8b4 0x975 0xa4b 0xac2 0xbd3 0xc7f 0xd4f 0xdee 0xe65>;
 					battery,chg_temp_table_data = <0x384 0x352 0x320 0x2ee 0x2bc 0x28a 0x258 0x226 0x1f4 0x1c2 0x190 0x15e 0x12c 0xfa 0xc8 0x96 0x64 0x32 0x00 0xffffffce 0xffffff9c 0xffffff6a 0xffffff38>;
+					battery,full_condition_vcell = <0x1112>;
+					battery,recharge_condition_vcell = <0x10fe>;
 					battery,high_temp_float = <0x1068>;
 					battery,low_temp_float = <0x1144>;
+					battery,swelling_low_rechg_voltage = <0x10ae>;
 					battery,chg_ocp_current = <0x00>;
 					battery,max_charging_charge_power = <0x61a8>;
 					battery,step_chg_type = <0x00>;
@@ -2781,6 +2779,7 @@
 			model = "Samsung A53X CIS OPEN REV03 based on S5E8825";
 
 			shub {
+				pinctrl-names = "default";
 				sensor-vdd-regulator = "VDD_SENSOR_1P8";
 				compatible = "shub";
 				acc-motor-coef = <0x00>;
@@ -2792,6 +2791,14 @@
 				mag-ak09918c-cover-array = [40 58 b7 f3 86 e9 01 e7 cf 3a 60 96 e4 e4 02 d7 ff 68 e6 c5 bf 07 03 50 0c e7 e1];
 				fcd-axis = <0x00>;
 				fcd-threshold = <0xfffffd44>;
+			};
+
+			samsung,reloc_gpio {
+				compatible = "samsung,reloc_gpio";
+				status = "okay";
+				sec,gpio-label = "reloc_gpio";
+				sec,reloc-base = <0x00>;
+				phandle = <0xa6>;
 			};
 
 			gpio_keys {
@@ -2923,20 +2930,20 @@
 			audio-codec-dummy {
 				compatible = "snd-soc-dummy";
 				#sound-dai-cells = <0x00>;
-				phandle = <0xa6>;
+				phandle = <0xa7>;
 			};
 
 			audio-cpu-dummy {
 				compatible = "samsung,dummy-cpu";
 				#sound-dai-cells = <0x00>;
-				phandle = <0xa7>;
+				phandle = <0xa8>;
 			};
 
 			abox_synchronized_ipc {
 				compatible = "samsung,abox-synchronized-ipc";
 				#sound-dai-cells = <0x01>;
 				abox = <0xffffffff>;
-				phandle = <0xa8>;
+				phandle = <0xa9>;
 			};
 
 			sec-audio-sysfs {
@@ -3878,7 +3885,7 @@
 				io-channels = <0x01 0x01>;
 				io-channel-names = "adc-ap-temp";
 				io-channel-ranges;
-				phandle = <0xa9>;
+				phandle = <0xaa>;
 			};
 
 			sec_thermistor@5 {
@@ -3891,7 +3898,7 @@
 				io-channels = <0x01 0x05>;
 				io-channel-names = "adc-lte-temp";
 				io-channel-ranges;
-				phandle = <0xaa>;
+				phandle = <0xab>;
 			};
 
 			sec_thermistor@6 {
@@ -3904,7 +3911,7 @@
 				io-channels = <0x01 0x06>;
 				io-channel-names = "adc-wf-temp";
 				io-channel-ranges;
-				phandle = <0xab>;
+				phandle = <0xac>;
 			};
 		};
 	};
@@ -4046,7 +4053,7 @@
 				pinctrl-names = "default\0nfc_nc";
 				pinctrl-0 = <0x3c 0x3d 0x3e 0x3f>;
 				pinctrl-1 = <0x40 0x41 0x42 0x43>;
-				phandle = <0xac>;
+				phandle = <0xad>;
 			};
 		};
 	};
@@ -4120,7 +4127,7 @@
 				samsung,pins = "gpa0-4";
 				samsung,pin-function = <0x00>;
 				samsung,pin-pud = <0x01>;
-				phandle = <0xad>;
+				phandle = <0xae>;
 			};
 		};
 	};
@@ -4202,7 +4209,7 @@
 				sec,watch_dog_reg = <0xd040>;
 				sec,config_id_reg = <0x10076>;
 				sec,enable_misctl_val = " p\0";
-				phandle = <0xae>;
+				phandle = <0xaf>;
 			};
 		};
 	};
@@ -4360,6 +4367,7 @@
 				pktproc_ul_buff_rgn_cached = <0x00>;
 				pktproc_ul_use_hw_iocc = <0x00>;
 				devfreq_use_dfs_max_freq = <0x00>;
+				phandle = <0xb0>;
 
 				cpif_tpmon {
 					trigger_msec_min = <0x1f4>;
@@ -4747,6 +4755,7 @@
 				memory-region = <0xffffffff 0xffffffff>;
 				cp_num = <0x00>;
 				use_mem_map_on_cp = <0x01>;
+				phandle = <0xb1>;
 
 				regions {
 
@@ -5038,7 +5047,7 @@
 				samsung,area = <0x01>;
 				samsung,offset = <0x510000>;
 				samsung,changable;
-				phandle = <0xaf>;
+				phandle = <0xb2>;
 			};
 
 			ext-bin@1 {
@@ -5047,7 +5056,7 @@
 				samsung,area = <0x01>;
 				samsung,offset = <0x52e000>;
 				samsung,changable;
-				phandle = <0xb0>;
+				phandle = <0xb3>;
 			};
 
 			ext-bin@2 {
@@ -5056,7 +5065,7 @@
 				samsung,area = <0x01>;
 				samsung,offset = <0x5da800>;
 				samsung,changable;
-				phandle = <0xb1>;
+				phandle = <0xb4>;
 			};
 
 			ext-bin@3 {
@@ -5065,7 +5074,7 @@
 				samsung,area = <0x01>;
 				samsung,offset = <0x5dd800>;
 				samsung,changable;
-				phandle = <0xb2>;
+				phandle = <0xb5>;
 			};
 
 			ext-bin@4 {
@@ -5074,7 +5083,7 @@
 				samsung,area = <0x01>;
 				samsung,offset = <0x5de800>;
 				samsung,changable;
-				phandle = <0xb3>;
+				phandle = <0xb6>;
 			};
 
 			ext-bin@5 {
@@ -5083,7 +5092,7 @@
 				samsung,area = <0x01>;
 				samsung,offset = <0x65e800>;
 				samsung,changable;
-				phandle = <0xb4>;
+				phandle = <0xb7>;
 			};
 
 			ext-bin@6 {
@@ -5092,7 +5101,7 @@
 				samsung,area = <0x01>;
 				samsung,offset = "\0f(";
 				samsung,changable;
-				phandle = <0xb5>;
+				phandle = <0xb8>;
 			};
 
 			ext-bin@7 {
@@ -5100,7 +5109,7 @@
 				samsung,name = "rxse.bin";
 				samsung,area = <0x01>;
 				samsung,offset = "\0lP";
-				phandle = <0xb6>;
+				phandle = <0xb9>;
 			};
 
 			ext-bin@8 {
@@ -5108,7 +5117,7 @@
 				samsung,name = "avsyncmix.bin";
 				samsung,area = <0x01>;
 				samsung,offset = "\0{x";
-				phandle = <0xb7>;
+				phandle = <0xba>;
 			};
 
 			ext-bin@9 {
@@ -5116,7 +5125,7 @@
 				samsung,name = "txse1.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x1800000>;
-				phandle = <0xb8>;
+				phandle = <0xbb>;
 			};
 
 			ext-bin@10 {
@@ -5124,7 +5133,7 @@
 				samsung,name = "txse2.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x1e00000>;
-				phandle = <0xb9>;
+				phandle = <0xbc>;
 			};
 
 			ext-bin@11 {
@@ -5132,7 +5141,7 @@
 				samsung,name = "bidirmic.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x1e72800>;
-				phandle = <0xba>;
+				phandle = <0xbd>;
 			};
 
 			ext-bin@12 {
@@ -5140,7 +5149,7 @@
 				samsung,name = "volumemonitor.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x1f27800>;
-				phandle = <0xbb>;
+				phandle = <0xbe>;
 			};
 
 			ext-bin@13 {
@@ -5148,7 +5157,7 @@
 				samsung,name = "sb_others.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x1f40800>;
-				phandle = <0xbc>;
+				phandle = <0xbf>;
 			};
 
 			ext-bin@14 {
@@ -5156,7 +5165,7 @@
 				samsung,name = "listenbackeffect.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x206c800>;
-				phandle = <0xbd>;
+				phandle = <0xc0>;
 			};
 
 			ext-bin@15 {
@@ -5164,7 +5173,7 @@
 				samsung,name = "a2dpcom.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x20d0800>;
-				phandle = <0xbe>;
+				phandle = <0xc1>;
 			};
 
 			ext-bin@16 {
@@ -5172,7 +5181,7 @@
 				samsung,name = "dolby.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x2c0000>;
-				phandle = <0xbf>;
+				phandle = <0xc2>;
 			};
 
 			ext-bin@17 {
@@ -5180,7 +5189,7 @@
 				samsung,name = "tfa9878.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x1480000>;
-				phandle = <0xc0>;
+				phandle = <0xc3>;
 			};
 
 			ext-bin@18 {
@@ -5188,7 +5197,7 @@
 				samsung,name = "sb_music.bin";
 				samsung,area = <0x01>;
 				samsung,offset = <0x2250800>;
-				phandle = <0xc1>;
+				phandle = <0xc4>;
 			};
 		};
 	};
@@ -5357,14 +5366,14 @@
 				samsung,pin-function = <0x0f>;
 				samsung,pin-pud = <0x03>;
 				samsung,pin-drv = <0x03>;
-				phandle = <0xc2>;
+				phandle = <0xc5>;
 			};
 
 			attn-input {
 				samsung,pins = "gpa0-3";
 				samsung,pin-function = <0x00>;
 				samsung,pin-pud = <0x01>;
-				phandle = <0xc3>;
+				phandle = <0xc6>;
 			};
 
 			key-voldown {
@@ -5421,7 +5430,7 @@
 				compatible = "samsung,mcd-panel-samsung-drv";
 				reset-gpios = <0xffffffff 0x00 0x00>;
 				reg = <0x00>;
-				phandle = <0xc4>;
+				phandle = <0xc7>;
 			};
 		};
 	};
@@ -5538,49 +5547,49 @@
 						regulator-name = "VDDD_1.05V_SUB";
 						regulator-min-microvolt = <0xf4240>;
 						regulator-max-microvolt = <0x100590>;
-						phandle = <0xc5>;
+						phandle = <0xc8>;
 					};
 
 					s2mpb03-ldo2 {
 						regulator-name = "VDDD_1.1V_CAM";
 						regulator-min-microvolt = <0xf4240>;
 						regulator-max-microvolt = <0x10c8e0>;
-						phandle = <0xc6>;
+						phandle = <0xc9>;
 					};
 
 					s2mpb03-ldo3 {
 						regulator-name = "VDDIO_1.8V_CAM";
 						regulator-min-microvolt = <0x1b7740>;
 						regulator-max-microvolt = <0x1b7740>;
-						phandle = <0xc7>;
+						phandle = <0xca>;
 					};
 
 					s2mpb03-ldo4 {
 						regulator-name = "S2MPB03_LD04";
 						regulator-min-microvolt = <0x124f80>;
 						regulator-max-microvolt = <0x124f80>;
-						phandle = <0xc8>;
+						phandle = <0xcb>;
 					};
 
 					s2mpb03-ldo5 {
 						regulator-name = "VDDA_2.9V_CAM";
 						regulator-min-microvolt = <0x2ab980>;
 						regulator-max-microvolt = <0x2c4020>;
-						phandle = <0xc9>;
+						phandle = <0xcc>;
 					};
 
 					s2mpb03-ldo6 {
 						regulator-name = "VDDA_2.9V_FCAM";
 						regulator-min-microvolt = <0x2ab980>;
 						regulator-max-microvolt = <0x2c4020>;
-						phandle = <0xca>;
+						phandle = <0xcd>;
 					};
 
 					s2mpb03-ldo7 {
 						regulator-name = "VDD_2.8V_AF";
 						regulator-min-microvolt = <0x2ab980>;
 						regulator-max-microvolt = <0x2ab980>;
-						phandle = <0xcb>;
+						phandle = <0xce>;
 					};
 				};
 			};
@@ -8973,7 +8982,7 @@
 				status = "okay";
 				flash-gpio = <0xffffffff 0x02 0x01>;
 				torch-gpio = <0xffffffff 0x03 0x01>;
-				phandle = <0xcc>;
+				phandle = <0xcf>;
 			};
 
 			d_phy_setfile@00 {
@@ -9026,7 +9035,7 @@
 				phys = <0xffffffff 0x00>;
 				phy_setfile = <0xffffffff>;
 				phy_tune_default_mode = "2304 1728 120";
-				phandle = <0xcd>;
+				phandle = <0xd0>;
 			};
 
 			is_sensor1@15040000 {
@@ -9042,7 +9051,7 @@
 				interrupt-names = "csi";
 				phys = <0xffffffff 0x00>;
 				phy_setfile = <0x57>;
-				phandle = <0xce>;
+				phandle = <0xd1>;
 			};
 
 			is_sensor2@15050000 {
@@ -9057,7 +9066,7 @@
 				interrupt-names = "csi";
 				phys = <0xffffffff 0x00>;
 				phy_setfile = <0x57>;
-				phandle = <0xcf>;
+				phandle = <0xd2>;
 			};
 
 			is_sensor4@15070000 {
@@ -9071,7 +9080,7 @@
 				interrupts = <0x00 0xb4 0x04>;
 				phys = <0xffffffff 0x00>;
 				phy_setfile = <0x57>;
-				phandle = <0xd0>;
+				phandle = <0xd3>;
 			};
 
 			is_sensor3@15060000 {
@@ -9085,7 +9094,7 @@
 				interrupts = <0x00 0xb6 0x04>;
 				phys = <0xffffffff 0x00>;
 				phy_setfile = <0xffffffff>;
-				phandle = <0xd1>;
+				phandle = <0xd4>;
 			};
 		};
 	};
@@ -10080,6 +10089,7 @@
 		spi_fp_cs = "/fragment@20/__overlay__/spi-fp-cs";
 		spi_fp_miso = "/fragment@20/__overlay__/spi-fp-miso";
 		spi_fp_mosi = "/fragment@20/__overlay__/spi-fp-mosi";
+		sec_reloc_gpio = "/fragment@model/__overlay__/samsung,reloc_gpio";
 		usb_hs_tune = "/fragment@model/__overlay__/hs_tune";
 		gnss_mailbox = "/fragment@model/__overlay__/gnss_mailbox";
 		dummy_audio_codec = "/fragment@model/__overlay__/audio-codec-dummy";
@@ -10106,6 +10116,8 @@
 		berlin_attn_irq = "/fragment@32/__overlay__/berlin_attn_irq";
 		berlin_attn_irq_suspend = "/fragment@32/__overlay__/berlin_attn_irq_suspend";
 		tsp_goodix = "/fragment@33/__overlay__/touchscreen@5d";
+		cpif = "/fragment@modemif/__overlay__/cpif";
+		cp_shmem = "/fragment@modemif/__overlay__/cp_shmem";
 		dsim_hs_pll_timing = "/fragment@dsim_hs_pll_timing/__overlay__/dsim-hs-pll-timing";
 		ext_bin_0 = "/fragment@38/__overlay__/ext-bin@0";
 		ext_bin_1 = "/fragment@38/__overlay__/ext-bin@1";

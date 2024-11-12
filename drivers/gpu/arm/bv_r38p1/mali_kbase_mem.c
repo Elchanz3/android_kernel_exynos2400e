@@ -4873,7 +4873,7 @@ static int kbase_jd_user_buf_map(struct kbase_context *kctx,
 
 
 	for (i = 0; i < pinned_pages; i++) {
-		dma_addr_t dma_addr;
+                dma_addr_t dma_addr;
                 #if (KERNEL_VERSION(4, 10, 0) > LINUX_VERSION_CODE)
                         dma_addr = dma_map_page(dev, pages[i], 0, PAGE_SIZE, DMA_BIDIRECTIONAL);
                 #else
@@ -5006,7 +5006,7 @@ static void kbase_jd_user_buf_unmap(struct kbase_context *kctx,
                /* Only for first page: handle non-imported range at the beginning. */
                if (offset_within_page > 0) {
                        dma_sync_single_for_device(kctx->kbdev->dev, dma_addr, offset_within_page,
-				DMA_BIDIRECTIONAL);
+                                                  DMA_BIDIRECTIONAL);
                        dma_addr += offset_within_page;
                }
 

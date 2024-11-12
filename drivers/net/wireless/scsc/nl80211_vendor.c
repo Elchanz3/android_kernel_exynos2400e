@@ -505,11 +505,16 @@ struct slsi_gscan_result *slsi_prepare_scan_result(struct sk_buff *skb, u16 anqp
 #endif
 	const u8                 *ssid_ie;
 	int                      mem_reqd;
-	int                      ie_len;
+	int                      ie_len = 0;
 	u8                       *ie;
 
 	ie = &mgmt->u.beacon.variable[0];
 	ie_len = fapi_get_datalen(skb) - (ie - (u8 *)mgmt) - anqp_length;
+
+	if (ie_len <= 0) {
+		SLSI_ERR_NODEV("invalid ie_len : %d\n", ie_len);
+		return NULL;
+	}
 
 	/* Exclude 1 byte for ie_data[1]. sizeof(u16) to include anqp_length, sizeof(int) for hs_id */
 	mem_reqd = (sizeof(struct slsi_gscan_result) - 1) + ie_len + anqp_length + sizeof(int) + sizeof(u16);

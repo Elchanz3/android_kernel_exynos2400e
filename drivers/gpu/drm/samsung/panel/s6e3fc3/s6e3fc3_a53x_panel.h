@@ -958,6 +958,12 @@ static void *a53x_mask_layer_exit_br_cmdtbl[] = {
 	&KEYINFO(a53x_level2_key_disable),
 	&KEYINFO(a53x_level1_key_disable),
 };
+
+static void *a53x_mask_layer_exit_after_cmdtbl[] = {
+	&CONDINFO_IF(a53x_cond_is_60hz),
+		&DLYINFO(a53x_wait_9msec),
+	&CONDINFO_FI(a53x_cond_is_60hz),
+};
 #endif
 
 #ifdef CONFIG_SUPPORT_PANEL_DECODER_TEST
@@ -1016,6 +1022,7 @@ static struct seqinfo a53x_seqtbl[MAX_PANEL_SEQ] = {
 	[PANEL_MASK_LAYER_BEFORE_SEQ] = SEQINFO_INIT("mask-layer-before-seq", a53x_mask_layer_before_cmdtbl),
 	[PANEL_MASK_LAYER_ENTER_BR_SEQ] = SEQINFO_INIT("mask-layer-enter-br-seq", a53x_mask_layer_enter_br_cmdtbl), //temp br
 	[PANEL_MASK_LAYER_EXIT_BR_SEQ] = SEQINFO_INIT("mask-layer-exit-br-seq", a53x_mask_layer_exit_br_cmdtbl),
+	[PANEL_MASK_LAYER_EXIT_AFTER_SEQ] = SEQINFO_INIT("mask-layer-exit-after-seq", a53x_mask_layer_exit_after_cmdtbl),
 #endif
 	[PANEL_FFC_SEQ] = SEQINFO_INIT("set-ffc-seq", a53x_ffc_cmdtbl),
 	[PANEL_DUMP_SEQ] = SEQINFO_INIT("dump-seq", a53x_dump_cmdtbl),

@@ -1696,7 +1696,7 @@ KERNEL_VERSION(4, 5, 0) > LINUX_VERSION_CODE
                 */
 
 		for (i = 0; i < faulted_pages; i++) {
-			dma_addr_t dma_addr;
+                        dma_addr_t dma_addr;
                         #if (KERNEL_VERSION(4, 10, 0) > LINUX_VERSION_CODE)
                                 dma_addr = dma_map_page(dev, pages[i], 0, PAGE_SIZE, DMA_BIDIRECTIONAL);
                         #else
